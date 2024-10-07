@@ -24,8 +24,9 @@ TPExpress Driver Server is a Node.js application for managing logistics operatio
 ## Running the Project
 
 1. Start the server:
-  ```sh
-  npm start
+   ```sh
+   npm run dev
+
 2. The server will be running on localhost:3000
 
 ## Middleware
