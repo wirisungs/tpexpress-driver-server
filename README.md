@@ -23,7 +23,15 @@ TPExpress Driver Server is a Node.js application for managing logistics operatio
 
 ## Running the Project
 
-1. Start the server
+1. Start the server:
   ```sh
   npm start
 2. The server will be running on localhost:3000
+
+## Middleware
+
+- Body Parser: Parses JSON request bodies.
+- Logging Middleware: Logs the HTTP method and URL of each request.
+- Error Handling Middleware: Catches and handles errors, returning a 500 status code with a generic error message
+
+## API Endpoints
