@@ -2,11 +2,11 @@
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser');
-const orderRoutes = require('./src/routes/order.routes');
-const authRoutes = require('./src/routes/auth.routes');
+const orderRoutes = require('./src/routes/order.route');
+require('dotenv').config();
 
 //port
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 //setup database
 const db = require('./src/data/db.mongo.config');
@@ -29,9 +29,7 @@ app.use((err, req, res, next) => {
 
 //route
 app.use('/order', orderRoutes);
-app.use('/auth', authRoutes);
-
 
 app.listen(port, () => {
-  console.log(`Up and Running! TPExpress Driver Serveexpress.r is running on http://localhost:${port}`)
+  console.log(`Up and Running! TPExpress Driver Server is running on http://localhost:${port}`)
 })

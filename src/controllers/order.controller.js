@@ -1,60 +1,115 @@
 const { json } = require("express");
+const Order = require('../models/Order.model');
+
+//Generate orderId
+const generateOrderId = async () => {
+  return Math.random().toString(36).substr(2, 9).toUpperCase();
+};
+
+// Create order
+const createOrder = async (req, res) => {
+  const { customerId, item, pickupLocation, dropoffLocation } = req.body;
+
+  // Validate required fields
+  if (!customerId || !item || !pickupLocation || !dropoffLocation) {
+    return res.status(400).json({ message: 'Customer ID, item, pickupLocation, and dropoffLocation are required' });
+  }
+  try {
+    const orderId = await generateOrderId(); // Assuming generateOrderId is defined elsewhere
+    const newOrder = new Order({
+      orderId,
+      customerId,
+      item,
+      pickupLocation,
+      dropoffLocation,
+      status: 'Pending' // Default status
+    });
+
+    console.log('Order created:', newOrder);
+
+    await newOrder.save();
+    res.status(201).json({ message: 'Order created successfully', order: newOrder });
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating order', error: error.message });
+  }
+};
 
 // Accept order
-const acceptOrder = (req, res) => {
-  const { orderId, driverId } = req.body;
-  const order = orders.find(o => o.orderId === parseInt(orderId));
-  if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+const acceptOrder = async (req, res) => {
+  const { orderId } = req.params;
+  const { driverId } = req.body;
+  try {
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ message: 'Order is not available for acceptance' });
+    }
+    order.status = 'Shipping';
+    order.driverId = driverId;
+    await order.save();
+    res.status(200).json({ message: 'Order accepted successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
   }
-  if (order.status !== 'Pending') {
-    return res.status(400).json({ message: 'Order is not available for acceptance' });
-  }
-  order.status = 'Accepted';
-  order.driverId = driverId;
-  res.status(200).json({ message: 'Order accepted successfully', order });
 };
 
 // Reject order
-const rejectOrder = (req, res) => {
-  const { orderId } = req.body;
-  const order = orders.find(o => o.orderId === parseInt(orderId));
-  if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+const rejectOrder = async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ message: 'Order is not available for rejection' });
+    }
+    order.status = 'Rejected';
+    await order.save();
+    res.status(200).json({ message: 'Order rejected successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
   }
-  if (order.status !== 'Pending') {
-    return res.status(400).json({ message: 'Order is not available for rejection' });
-  }
-  order.status = 'Rejected';
-  res.status(200).json({ message: 'Order rejected successfully', order });
-}
+};
 
 // Complete order
-const completeOrder = (req, res) => {
-  const { orderId } = req.body;
-  const order = orders.find(o => o.orderId === parseInt(orderId));
-  if (!order) {
-    return res.status(404).json({ message: 'Order not found' });
+const completeOrder = async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.status !== 'Shipping') {
+      return res.status(400).json({ message: 'Order is not available for completion' });
+    }
+    order.status = 'Completed';
+    await order.save();
+    res.status(200).json({ message: 'Order completed successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
   }
-  if (order.status !== 'Accepted') {
-    return res.status(400).json({ message: 'Order is not available for completion' });
-  }
-  order.status = 'Completed';
-  res.status(200).json({ message: 'Order completed successfully', order });
-}
+};
 
 // Cancel order
-const cancelOrder = (req, res) => {
-  const { orderId } = req.body;
-  const order = orders.find(o => o.orderId === parseInt(orderId));
-  if(!order) {
-    return res.status(404).json({ message: 'Order not found' });
+const cancelOrder = async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    if (order.status !== 'Shipping') {
+      return res.status(400).json({ message: 'Order is not available for cancellation' });
+    }
+    order.status = 'Cancelled';
+    await order.save();
+    res.status(200).json({ message: 'Order cancelled successfully', order });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
   }
-  if (order.status !== 'Accepted') {
-    return res.status(400).json({ message: 'Order is not available for cancellation' });
-  }
-  order.status = 'Cancelled';
-  res.status(200).json({ message: 'Order cancelled successfully', order });
-}
+};
 
-module.exports = { acceptOrder, rejectOrder, completeOrder, cancelOrder };
+module.exports = { createOrder, acceptOrder, rejectOrder, completeOrder, cancelOrder };
