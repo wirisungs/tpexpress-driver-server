@@ -1,5 +1,18 @@
 const { json } = require("express");
 const Order = require('../models/Order.model');
+const { get } = require("mongoose");
+const router = require("../routes/order.route");
+
+// Get order
+const getOrder = async (req, res) => {
+  try {
+    const orders = await Order.find({ status: 'Pending' }).lean();
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching data:', error);
+    res.status(500).json({ error: 'Error fetching data' });
+  }
+};
 
 //Generate orderId
 const generateOrderId = async () => {
@@ -8,7 +21,7 @@ const generateOrderId = async () => {
 
 // Create order
 const createOrder = async (req, res) => {
-  const { customerId, item, pickupLocation, dropoffLocation } = req.body;
+  const { customerId, item, pickupLocation, dropoffLocation, note, price } = req.body;
 
   // Validate required fields
   if (!customerId || !item || !pickupLocation || !dropoffLocation) {
@@ -22,6 +35,8 @@ const createOrder = async (req, res) => {
       item,
       pickupLocation,
       dropoffLocation,
+      note,
+      price,
       status: 'Pending' // Default status
     });
 
@@ -75,23 +90,23 @@ const rejectOrder = async (req, res) => {
 };
 
 // Complete order
-const completeOrder = async (req, res) => {
-  const { orderId } = req.params;
-  try {
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+  const completeOrder = async (req, res) => {
+    const { orderId } = req.params;
+    try {
+      const order = await Order.findOne({ orderId });
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found' });
+      }
+      if (order.status !== 'Shipping') {
+        return res.status(400).json({ message: 'Order is not available for completion' });
+      }
+      order.status = 'Completed';
+      await order.save();
+      res.status(200).json({ message: 'Order completed successfully', order });
+    } catch (error) {
+      res.status(500).json({ message: 'Server error', error });
     }
-    if (order.status !== 'Shipping') {
-      return res.status(400).json({ message: 'Order is not available for completion' });
-    }
-    order.status = 'Completed';
-    await order.save();
-    res.status(200).json({ message: 'Order completed successfully', order });
-  } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
+  };
 
 // Cancel order
 const cancelOrder = async (req, res) => {
@@ -112,4 +127,4 @@ const cancelOrder = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, acceptOrder, rejectOrder, completeOrder, cancelOrder };
+module.exports = { getOrder, createOrder, acceptOrder, rejectOrder, completeOrder, cancelOrder };

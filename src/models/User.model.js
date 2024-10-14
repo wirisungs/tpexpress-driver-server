@@ -14,7 +14,7 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  pass: {
+  password: {
     type: String,
     required: true
   },
@@ -26,11 +26,6 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  status: {
-    type: String,
-    required: true,
-    default: 'Available'
-  }
-});
+}, { collection: 'User' });
 
 module.exports = mongoose.model('User', UserSchema);

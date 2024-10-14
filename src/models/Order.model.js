@@ -31,6 +31,16 @@ const OrderSchema = new mongoose.Schema({
   dropoffLocation: {
     type: String,
     required: true
+  },
+  note: {
+    type: String,
+    required: false,
+    default: null
+  },
+  price: { //If you want to add a price field to the Order model, you can do so by adding the following field to the OrderSchema:
+    type: Number,
+    required: false,
+    default: null
   }
 }, { collection: 'Order' });
 
