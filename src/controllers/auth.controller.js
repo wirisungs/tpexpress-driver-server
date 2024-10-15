@@ -22,8 +22,11 @@ const generateDriverId = async () => {
 
 // Register a new user
 const registerUser = async (req, res) => {
-  const { name, phone, password, vehicle, location } = req.body;
+  const { name, phone, password, vehicle, vehiclePlate, licensePlate, dob, CCCD, bankName, bankAccount, bankNumber, location } = req.body;
 
+  if(!name || !phone || !password || !vehicle || !vehiclePlate || !licensePlate || !dob || !CCCD || !bankName || !bankAccount || !bankNumber || !location) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
   // Validate password
   const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,30}$/;
   if (!passwordRegex.test(password)) {
@@ -45,12 +48,21 @@ const registerUser = async (req, res) => {
       name,
       phone,
       password: hashedPassword,
-      vehicle,
+      details: {
+        vehicle,
+        vehiclePlate,
+        licensePlate,
+        dob,
+        CCCD,
+        bankName,
+        bankAccount,
+        bankNumber
+      },
       location
     });
 
     await newUser.save();
-    res.status(201).json({ message: 'User registered successfully', userId: newUser.driverId });
+    res.status(201).json({ message: 'User registered successfully', driverId: newUser.driverId });
   } catch (error) {
     res.status(500).json({ message: 'Error registering user', error });
   }

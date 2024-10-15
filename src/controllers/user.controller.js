@@ -1,5 +1,5 @@
-const bcrypt = require("bcryptjs");
-const User = require("../models/User.model");
+const bcrypt = require('bcryptjs');
+const User = require('../models/User.model');
 
 const getUserProfile = (req, res) => {
   const { driverId } = req.user; // Assuming you're using driverId for user identification
@@ -17,7 +17,7 @@ const getUserProfile = (req, res) => {
 
 const editUserProfile = (req, res) => {
   const { driverId } = req.user; // Assuming you're using driverId for user identification
-  const { newName, newPhone, newPassword, newVehicle, newLocation } = req.body;
+  const { newName, newPhone, newPassword, newVehicle, newLocation, newVehiclePlate, newLicensePlate, newDob, newCCCD, newBankName, newBankAccount, newBankNumber } = req.body;
 
   User.findOne({ driverId: driverId }, (err, user) => {
     if (err) {
@@ -35,10 +35,31 @@ const editUserProfile = (req, res) => {
       user.phone = newPhone;
     }
     if (newPassword) {
-      user.pass = bcrypt.hashSync(newPassword, 10);
+      user.password = bcrypt.hashSync(newPassword, 10);
     }
     if (newVehicle) {
-      user.vehicle = newVehicle;
+      user.details.vehicle = newVehicle;
+    }
+    if (newVehiclePlate) {
+      user.details.vehiclePlate = newVehiclePlate;
+    }
+    if (newLicensePlate) {
+      user.details.licensePlate = newLicensePlate;
+    }
+    if (newDob) {
+      user.details.dob = newDob;
+    }
+    if (newCCCD) {
+      user.details.CCCD = newCCCD;
+    }
+    if (newBankName) {
+      user.details.bankName = newBankName;
+    }
+    if (newBankAccount) {
+      user.details.bankAccount = newBankAccount;
+    }
+    if (newBankNumber) {
+      user.details.bankNumber = newBankNumber;
     }
     if (newLocation) {
       user.location = newLocation;
