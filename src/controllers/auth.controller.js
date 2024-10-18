@@ -74,12 +74,12 @@ const loginUser = async (req, res) => {
   try {
     const user = await User.findOne({ phone });
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: 'Tài khoản không tồn tại (ERR_404)' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Invalid password' });
+      return res.status(401).json({ message: 'Sai mật khẩu, vui lòng kiểm tra lại (ERR_401)' });
     }
 
     const token = jwt.sign({ driverId: user.driverId }, process.env.JWT_SECRET, { expiresIn: '1h' });

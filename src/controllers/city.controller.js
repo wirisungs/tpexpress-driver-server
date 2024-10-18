@@ -1,4 +1,3 @@
-const { json } = require('express');
 const cities = require('../data/cities.json');
 
 const getCityList = async (req, res) => {
