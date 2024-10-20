@@ -12,7 +12,7 @@ const authenticateUser = (req, res, next) => {
   }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Extracts user info (e.g., driverId)
+    req.user = decoded; // Extracts user info (e.g., userId)
     next();
   } catch (err) {
     res.status(400).json({ message: 'Invalid token' });
@@ -22,8 +22,8 @@ const authenticateUser = (req, res, next) => {
 // Route to get the user profile
 const getUserProfile = async (req, res) => {
   try {
-    const { driverId } = req.user; // Assuming driverId is part of the JWT token's payload
-    const user = await User.findOne({ driverId: driverId });
+    const { userID } = req.user; // Assuming userId is part of the JWT token's payload
+    const user = await User.findById(userID);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });

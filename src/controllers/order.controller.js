@@ -19,13 +19,6 @@ const getOrderOngoing = async (req, res) => {
   try {
     // Fetch all orders where the status is 'Shipping' and driverId matches
     const orders = await Order.find({ status: 'Shipping', driverId }).lean();
-
-    if (orders.length === 0) {
-      // If no orders are found, respond with a message
-      return res.status(404).json({ message: 'No ongoing orders found for this driver' });
-    }
-
-    // If orders are found, return them in JSON format
     res.status(200).json(orders);
   } catch (error) {
     console.error('Error fetching orders:', error);
