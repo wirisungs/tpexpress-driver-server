@@ -1,6 +1,6 @@
 # TPExpress Driver Server
 
-TPExpress Driver Server is a Node.js application for managing logistics operations, including order creation by customers and order acceptance by drivers.
+TPExpress Driver Server is a Node.js application for managing logistics operations as driver side, including order creation by customers and order acceptance by drivers.
 
 ## Prerequisites
 
@@ -22,6 +22,8 @@ TPExpress Driver Server is a Node.js application for managing logistics operatio
 3. Create a `.env` file in the root directory and add your MongoDB URI:
    ```sh
    MONGO_URI=mongodb+srv://<username>:<password>@<cluster-url>/<database>?retryWrites=true&w=majority
+   JWT_SECRET=your_secret_key
+   PORT=3000 || or setup whatever you want
    ```
 
 ## Running the Project
@@ -40,7 +42,7 @@ TPExpress Driver Server is a Node.js application for managing logistics operatio
 
 ## API Endpoints
 
-- **POST /orders**: Create a new order.
+
 - **GET /orders**: Retrieve all orders.
 - **GET /orders/:id**: Retrieve a specific order by ID.
 - **PUT /orders/:id**: Update a specific order by ID.

@@ -77,12 +77,15 @@ const registerUser = async (req, res) => {
         if (existingCCCD) {
             return res.status(400).json({ message: 'CCCD already registered' });
         }
+        const driverId = await generateDriverId();
+        const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+
         const existingDriverLicenseId = await Driver.findOne({ driverLicenseId: licenseTypeId }).session(session);
         if(existingDriverLicenseId){
             return res.status(400).json({ message: 'License ID already registered' });
         }
 
-        const driverId = await generateDriverId();
+        // const driverId = await generateDriverId();
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Validate vehicle type
@@ -92,7 +95,7 @@ const registerUser = async (req, res) => {
         }
 
         // Generate license type and ID
-        const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+        // const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
 
         // Create a new LicenseType entry for the user
         const newLicenseType = new LicenseType({
