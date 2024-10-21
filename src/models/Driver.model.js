@@ -44,7 +44,8 @@ const DriverSchema = new mongoose.Schema({
     required: true
   },
   driverLicenseId: { //bằng lái xe
-    type: mongoose.Schema.Types.ObjectId,
+    type: String, 
+    ref: 'LicenseType',
     required: true,
   },
   driverLicenseType: { //loại bằng lái

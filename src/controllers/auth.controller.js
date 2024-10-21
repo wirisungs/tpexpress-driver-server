@@ -43,104 +43,113 @@ const generateLicenseTypeId = async (type) => {
 
 // Register a new user
 const registerUser = async (req, res) => {
-  const {
-    name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
-    vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
-    location, role, gender, email, address
-  } = req.body;
+    const {
+        name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
+        vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
+        location, role, gender, email, address, licenseTypeName
+    } = req.body;
 
-  // Validate required fields
-  if (!name || !phone || !password || !vehicleTypeId || !vehiclePlate || !dob ||
-    !CCCD || !CCCDDate || !bankName || !bankAccount || !bankNumber || !location || !role || !gender || !email || !address) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-
-  // Validate password
-  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,30}$/;
-  if (!passwordRegex.test(password)) {
-    return res.status(400).json({
-      message: 'Password must be 8-30 characters long, contain at least one uppercase letter, and one special character.'
-    });
-  }
-
-  try {
-    // Check if the phone number already exists
-    const existingUser = await User.findOne({ userPhone: phone });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Phone number already registered' });
+    if (!name || !phone || !password || !vehicleTypeId || !vehiclePlate || !dob ||
+        !CCCD || !CCCDDate || !bankName || !bankAccount || !bankNumber || !location || !role || !gender || !email || !address || !licenseTypeName) {
+        return res.status(400).json({ message: 'All fields are required' });
     }
 
-    const driverId = await generateDriverId();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Validate vehicle type
-    const vehicleType = await VehicleType.findById(vehicleTypeId);
-    if (!vehicleType) {
-      return res.status(400).json({ message: 'Invalid vehicle type provided' });
+    // Validate password
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,30}$/;
+    if (!passwordRegex.test(password)) {
+        return res.status(400).json({
+            message: 'Password must be 8-30 characters long, contain at least one uppercase letter, one special character, and one number.'
+        });
     }
 
-    const licenseTypePrefix = vehicleType.vehicleTypeId === 'Car' ? 'MT' : 'TR';
-    const licenseTypeId = await generateLicenseTypeId(licenseTypePrefix);
+    try {
+        // Check if the phone number already exists
+        const existingUser = await User.findOne({ userPhone: phone });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Phone number already registered' });
+        }
 
-    // Find or create role
-    const userRole = await Role.findOne({ roleId: role });
-    if (!userRole) {
-      return res.status(400).json({ message: 'Invalid role provided' });
+        const driverId = await generateDriverId();
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Validate vehicle type
+        const vehicleType = await VehicleType.findOne({ vehicleTypeId });
+        if (!vehicleType) {
+            return res.status(400).json({ message: 'Invalid vehicle type provided' });
+        }
+
+        // Generate license type and ID
+        const licenseTypeId = await generateLicenseTypeId(licenseTypeName);
+
+        console.log(`Generated licenseTypeId: ${licenseTypeId}`); // Debugging line
+
+        // Create a new LicenseType entry for the user
+        const newLicenseType = new LicenseType({
+            licenseTypeId,
+            licenseTypeName,  // Name of the license (e.g., A1, B2)
+            vehicleTypeID: vehicleTypeId  // Correctly assign the vehicle type ID here
+        });
+
+        await newLicenseType.save();
+
+        // Find or create role
+        const userRole = await Role.findOne({ roleId: role });
+        if (!userRole) {
+            return res.status(400).json({ message: 'Invalid role provided' });
+        }
+
+        // Create new user
+        const newUser = new User({
+            userId: driverId,
+            userPhone: phone,
+            userPassword: hashedPassword,
+            userStatus: 'active', // Assuming status is active upon registration
+            userRole: userRole.roleId // Store the role ID from the Role model
+        });
+
+        await newUser.save();
+
+        // Create a Driver document if the role is 'Driver'
+        if (role === 'Driver') {
+            const newDriver = new Driver({
+                driverId,
+                driverName: name,
+                driverEmail: email,
+                driverPhone: phone,
+                driverAddress: address,
+                driverBirth: dob,
+                driverGender: gender,
+                driverCCCD: CCCD,
+                driverCCCDDate: CCCDDate,
+                driverNationality: nationality,
+                driverLicenseId: licenseTypeId,  // Use string for license ID
+                driverLicenseType: licenseTypeName,  // Set license type name from input
+                driverVehicleBSX: vehiclePlate,
+                driverStatus: true, // Assuming true means logged in or available
+                driverViolation: 0, // Default 0 violations
+                userId: newUser._id
+            });
+
+            await newDriver.save();
+        }
+
+        // Create a Vehicle document for the user
+        const newVehicle = new Vehicle({
+            vehicleLicenseBSX: vehiclePlate,
+            vehicleTypeId: vehicleTypeId, // Use the object ID of the VehicleType
+            vehicleBrand,
+            vehicleManufacture,
+            vehicleColor,
+            vehicleDisplacement
+        });
+        await newVehicle.save();
+
+        res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
+    } catch (error) {
+        console.error('Error registering user:', error);
+        res.status(500).json({ message: 'Error registering user', error: error.message });
     }
-
-    // Create new user
-    const newUser = new User({
-      userId: driverId,
-      userPhone: phone,
-      userPassword: hashedPassword,
-      userStatus: 'active', // Assuming status is active upon registration
-      userRole: userRole.roleId // Store the role ID from the Role model
-    });
-
-    await newUser.save();
-
-    // Create a Driver document if the role is 'Driver'
-    if (role === 'Driver') {
-      const newDriver = new Driver({
-        driverId,
-        driverName: name,
-        driverEmail: email,
-        driverPhone: phone,
-        driverAddress: address,
-        driverBirth: dob,
-        driverGender: gender,
-        driverCCCD: CCCD,
-        driverCCCDDate: CCCDDate,
-        driverNationality: nationality,
-        driverLicenseId: licenseTypeId,
-        driverLicenseType: await LicenseType.findById(licenseTypeId).select('licenseTypeName'),
-        driverVehicleBSX: vehiclePlate,
-        driverStatus: true, // Assuming true means logged in or available
-        driverViolation: 0, // Default 0 violations
-        userId: newUser._id
-      });
-
-      await newDriver.save();
-    }
-
-    // Create a Vehicle document for the user
-    const newVehicle = new Vehicle({
-      vehicleLicenseBSX: vehiclePlate,
-      vehicleTypeId: vehicleType, // Store the vehicle type ID from the VehicleType model
-      vehicleBrand,
-      vehicleManufacture,
-      vehicleColor,
-      vehicleDisplacement
-    });
-    await newVehicle.save();
-
-    res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
-  } catch (error) {
-    console.error('Error registering user:', error);
-    res.status(500).json({ message: 'Error registering user', error: error.message });
-  }
 };
-
 // Login user
 const loginUser = async (req, res) => {
   const { phone, password } = req.body;

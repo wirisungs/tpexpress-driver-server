@@ -4,7 +4,6 @@ const LicenseTypeSchema = new mongoose.Schema({
   licenseTypeId: { //mã loại bằng lái
     type: String,
     required: true,
-    unique: true
   },
   licenseTypeName: { //tên loại bằng lái
     type: String,
