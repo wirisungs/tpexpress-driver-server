@@ -44,7 +44,7 @@ const DriverSchema = new mongoose.Schema({
     required: true
   },
   driverLicenseId: { //bằng lái xe
-    type: String, 
+    type: String,
     ref: 'LicenseType',
     required: true,
   },
@@ -59,7 +59,8 @@ const DriverSchema = new mongoose.Schema({
   },
   driverStatus: { //trạng thái đăng nhập
     type: Boolean,
-    required: true
+    required: true,
+    default: false
   },
   driverViolation: { //vi phạm
     type: Number,

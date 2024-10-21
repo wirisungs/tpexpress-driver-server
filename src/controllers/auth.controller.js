@@ -125,7 +125,7 @@ const registerUser = async (req, res) => {
                 driverLicenseId: licenseTypeId,  // Use string for license ID
                 driverLicenseType: licenseTypeName,  // Set license type name from input
                 driverVehicleBSX: vehiclePlate,
-                driverStatus: true, // Assuming true means logged in or available
+                driverStatus: false, // Assuming true means logged in or available
                 driverViolation: 0, // Default 0 violations
                 userId: newUser._id
             });
@@ -136,7 +136,7 @@ const registerUser = async (req, res) => {
         // Create a Vehicle document for the user
         const newVehicle = new Vehicle({
             vehicleLicenseBSX: vehiclePlate,
-            vehicleTypeId: vehicleTypeId, // Use the object ID of the VehicleType
+            vehicleTypeId: vehicleTypeId,
             vehicleBrand,
             vehicleManufacture,
             vehicleColor,
