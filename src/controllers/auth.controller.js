@@ -6,6 +6,7 @@ const Role = require('../models/Role.model');
 const Vehicle = require('../models/Vehicle.model');
 const VehicleType = require('../models/VehicleType.model');
 const LicenseType = require('../models/LicenseType.model');
+const mongoose = require('mongoose');
 require('dotenv').config();
 
 const generateDriverId = async () => {
@@ -25,8 +26,8 @@ const generateDriverId = async () => {
   return driverId;
 };
 
-const generateLicenseTypeId = async (type) => {
-  const prefix = type === 'TR' ? 'TR' : 'MT';
+const generateLicenseTypeId = async (vehicleTypeId) => {
+  const prefix = (vehicleTypeId === 'Car' || vehicleTypeId === 'Truck') ? 'TR' : 'MT';
   let isUnique = false;
   let licenseTypeId = "";
 
@@ -43,6 +44,9 @@ const generateLicenseTypeId = async (type) => {
 
 // Register a new user
 const registerUser = async (req, res) => {
+    const session = await mongoose.startSession(); // Start a session
+    session.startTransaction(); // Begin the transaction
+
     const {
         name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
         vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
@@ -64,24 +68,31 @@ const registerUser = async (req, res) => {
 
     try {
         // Check if the phone number already exists
-        const existingUser = await User.findOne({ userPhone: phone });
+        const existingUser = await User.findOne({ userPhone: phone }).session(session);
         if (existingUser) {
             return res.status(400).json({ message: 'Phone number already registered' });
+        }
+
+        const existingCCCD = await Driver.findOne({ driverCCCD: CCCD }).session(session);
+        if (existingCCCD) {
+            return res.status(400).json({ message: 'CCCD already registered' });
+        }
+        const existingDriverLicenseId = await Driver.findOne({ driverLicenseId: licenseTypeId }).session(session);
+        if(existingDriverLicenseId){
+            return res.status(400).json({ message: 'License ID already registered' });
         }
 
         const driverId = await generateDriverId();
         const hashedPassword = await bcrypt.hash(password, 10);
 
         // Validate vehicle type
-        const vehicleType = await VehicleType.findOne({ vehicleTypeId });
+        const vehicleType = await VehicleType.findOne({ vehicleTypeId }).session(session);
         if (!vehicleType) {
             return res.status(400).json({ message: 'Invalid vehicle type provided' });
         }
 
         // Generate license type and ID
-        const licenseTypeId = await generateLicenseTypeId(licenseTypeName);
-
-        console.log(`Generated licenseTypeId: ${licenseTypeId}`); // Debugging line
+        const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
 
         // Create a new LicenseType entry for the user
         const newLicenseType = new LicenseType({
@@ -90,10 +101,10 @@ const registerUser = async (req, res) => {
             vehicleTypeID: vehicleTypeId  // Correctly assign the vehicle type ID here
         });
 
-        await newLicenseType.save();
+        await newLicenseType.save({ session }); // Save with session
 
         // Find or create role
-        const userRole = await Role.findOne({ roleId: role });
+        const userRole = await Role.findOne({ roleId: role }).session(session);
         if (!userRole) {
             return res.status(400).json({ message: 'Invalid role provided' });
         }
@@ -107,7 +118,7 @@ const registerUser = async (req, res) => {
             userRole: userRole.roleId // Store the role ID from the Role model
         });
 
-        await newUser.save();
+        await newUser.save({ session }); // Save with session
 
         // Create a Driver document if the role is 'Driver'
         if (role === 'Driver') {
@@ -130,7 +141,7 @@ const registerUser = async (req, res) => {
                 userId: newUser._id
             });
 
-            await newDriver.save();
+            await newDriver.save({ session }); // Save with session
         }
 
         // Create a Vehicle document for the user
@@ -142,12 +153,17 @@ const registerUser = async (req, res) => {
             vehicleColor,
             vehicleDisplacement
         });
-        await newVehicle.save();
+        await newVehicle.save({ session }); // Save with session
 
+        // Commit the transaction if all operations succeeded
+        await session.commitTransaction();
         res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
     } catch (error) {
         console.error('Error registering user:', error);
+        await session.abortTransaction(); // Rollback the transaction on error
         res.status(500).json({ message: 'Error registering user', error: error.message });
+    } finally {
+        session.endSession(); // End the session
     }
 };
 // Login user
@@ -172,6 +188,7 @@ const loginUser = async (req, res) => {
     );
 
     res.status(200).json({ message: 'Login successful', token });
+    // console.log('Login successful', token);
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Error logging in', error: error.message });
