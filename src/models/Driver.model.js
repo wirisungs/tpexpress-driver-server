@@ -67,7 +67,7 @@ const DriverSchema = new mongoose.Schema({
     required: false
   },
   userId: { //mã người dùng
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
     required: true
   }

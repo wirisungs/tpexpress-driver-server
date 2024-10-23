@@ -43,131 +43,257 @@ const generateLicenseTypeId = async (vehicleTypeId) => {
 };
 
 // Register a new user
+// const registerUser = async (req, res) => {
+//     const session = await mongoose.startSession(); // Start a session
+//     session.startTransaction(); // Begin the transaction
+
+//     const {
+//         name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
+//         vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
+//         location, role, gender, email, address, licenseTypeName
+//     } = req.body;
+
+//     if (!name || !phone || !password || !vehicleTypeId || !vehiclePlate || !dob ||
+//         !CCCD || !CCCDDate || !bankName || !bankAccount || !bankNumber || !location || !role || !gender || !email || !address || !licenseTypeName) {
+//         return res.status(400).json({ message: 'All fields are required' });
+//     }
+
+//     // Validate password
+//     const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,30}$/;
+//     if (!passwordRegex.test(password)) {
+//         return res.status(400).json({
+//             message: 'Password must be 8-30 characters long, contain at least one uppercase letter, one special character, and one number.'
+//         });
+//     }
+
+//     try {
+//         // Check if the phone number already exists
+//         const existingUser = await User.findOne({ userPhone: phone }).session(session);
+//         if (existingUser) {
+//             return res.status(400).json({ message: 'Phone number already registered' });
+//         }
+
+//         const existingCCCD = await Driver.findOne({ driverCCCD: CCCD }).session(session);
+//         if (existingCCCD) {
+//             return res.status(400).json({ message: 'CCCD already registered' });
+//         }
+//         const driverId = await generateDriverId();
+//         const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+
+//         const existingDriverLicenseId = await Driver.findOne({ driverLicenseId: licenseTypeId }).session(session);
+//         if(existingDriverLicenseId){
+//             return res.status(400).json({ message: 'License ID already registered' });
+//         }
+
+//         // const driverId = await generateDriverId();
+//         const hashedPassword = await bcrypt.hash(password, 10);
+
+//         // Validate vehicle type
+//         const vehicleType = await VehicleType.findOne({ vehicleTypeId }).session(session);
+//         if (!vehicleType) {
+//             return res.status(400).json({ message: 'Invalid vehicle type provided' });
+//         }
+
+//         // Generate license type and ID
+//         // const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+
+//         // Create a new LicenseType entry for the user
+//         const newLicenseType = new LicenseType({
+//             licenseTypeId,
+//             licenseTypeName,  // Name of the license (e.g., A1, B2)
+//             vehicleTypeID: vehicleTypeId  // Correctly assign the vehicle type ID here
+//         });
+
+//         await newLicenseType.save({ session }); // Save with session
+
+//         // Find or create role
+//         const userRole = await Role.findOne({ roleId: role }).session(session);
+//         if (!userRole) {
+//             return res.status(400).json({ message: 'Invalid role provided' });
+//         }
+
+//         // Create new user
+//         const newUser = new User({
+//             userId: driverId,
+//             userPhone: phone,
+//             userPassword: hashedPassword,
+//             userStatus: 'active', // Assuming status is active upon registration
+//             userRole: userRole.roleId // Store the role ID from the Role model
+//         });
+
+//         await newUser.save({ session }); // Save with session
+
+//         // Create a Driver document if the role is 'Driver'
+//         if (role === 'Driver') {
+//             const newDriver = new Driver({
+//                 driverId,
+//                 driverName: name,
+//                 driverEmail: email,
+//                 driverPhone: phone,
+//                 driverAddress: address,
+//                 driverBirth: dob,
+//                 driverGender: gender,
+//                 driverCCCD: CCCD,
+//                 driverCCCDDate: CCCDDate,
+//                 driverNationality: nationality,
+//                 driverLicenseId: licenseTypeId,  // Use string for license ID
+//                 driverLicenseType: licenseTypeName,  // Set license type name from input
+//                 driverVehicleBSX: vehiclePlate,
+//                 driverStatus: false, // Assuming true means logged in or available
+//                 driverViolation: 0, // Default 0 violations
+//                 userId: newUser._id
+//             });
+
+//             await newDriver.save({ session }); // Save with session
+//         }
+
+//         // Create a Vehicle document for the user
+//         const newVehicle = new Vehicle({
+//             vehicleLicenseBSX: vehiclePlate,
+//             vehicleTypeId: vehicleTypeId,
+//             vehicleBrand,
+//             vehicleManufacture,
+//             vehicleColor,
+//             vehicleDisplacement
+//         });
+//         await newVehicle.save({ session }); // Save with session
+
+//         // Commit the transaction if all operations succeeded
+//         await session.commitTransaction();
+//         res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
+//     } catch (error) {
+//         console.error('Error registering user:', error);
+//         await session.abortTransaction(); // Rollback the transaction on error
+//         res.status(500).json({ message: 'Error registering user', error: error.message });
+//     } finally {
+//         session.endSession(); // End the session
+//     }
+// };
+
 const registerUser = async (req, res) => {
-    const session = await mongoose.startSession(); // Start a session
-    session.startTransaction(); // Begin the transaction
+  const session = await mongoose.startSession(); // Start a session
+  session.startTransaction(); // Begin the transaction
 
-    const {
-        name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
-        vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
-        location, role, gender, email, address, licenseTypeName
-    } = req.body;
+  const {
+      name, phone, password, vehicleTypeId, vehicleBrand, vehiclePlate, vehicleManufacture, vehicleColor,
+      vehicleDisplacement, dob, CCCD, CCCDDate, nationality, bankName, bankAccount, bankNumber,
+      location, role, gender, email, address, licenseTypeName
+  } = req.body;
 
-    if (!name || !phone || !password || !vehicleTypeId || !vehiclePlate || !dob ||
-        !CCCD || !CCCDDate || !bankName || !bankAccount || !bankNumber || !location || !role || !gender || !email || !address || !licenseTypeName) {
-        return res.status(400).json({ message: 'All fields are required' });
-    }
+  // Validate mandatory fields
+  if (!name || !phone || !password || !vehicleTypeId || !vehiclePlate || !dob ||
+      !CCCD || !CCCDDate || !bankName || !bankAccount || !bankNumber || !location || !role || !gender || !email || !address || !licenseTypeName) {
+      return res.status(400).json({ message: 'All fields are required' });
+  }
 
-    // Validate password
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,30}$/;
-    if (!passwordRegex.test(password)) {
-        return res.status(400).json({
-            message: 'Password must be 8-30 characters long, contain at least one uppercase letter, one special character, and one number.'
-        });
-    }
+  // Validate password
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])(?=.*\d)[A-Za-z\d!@#$%^&*]{8,30}$/;
+  if (!passwordRegex.test(password)) {
+      return res.status(400).json({
+          message: 'Password must be 8-30 characters long, contain at least one uppercase letter, one special character, and one number.'
+      });
+  }
 
-    try {
-        // Check if the phone number already exists
-        const existingUser = await User.findOne({ userPhone: phone }).session(session);
-        if (existingUser) {
-            return res.status(400).json({ message: 'Phone number already registered' });
-        }
+  try {
+      // Check if the phone number already exists
+      const existingUser = await User.findOne({ userPhone: phone }).session(session);
+      if (existingUser) {
+          return res.status(400).json({ message: 'Phone number already registered' });
+      }
 
-        const existingCCCD = await Driver.findOne({ driverCCCD: CCCD }).session(session);
-        if (existingCCCD) {
-            return res.status(400).json({ message: 'CCCD already registered' });
-        }
-        const driverId = await generateDriverId();
-        const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+      // Check if the CCCD (citizenship card number) is already registered
+      const existingCCCD = await Driver.findOne({ driverCCCD: CCCD }).session(session);
+      if (existingCCCD) {
+          return res.status(400).json({ message: 'CCCD already registered' });
+      }
 
-        const existingDriverLicenseId = await Driver.findOne({ driverLicenseId: licenseTypeId }).session(session);
-        if(existingDriverLicenseId){
-            return res.status(400).json({ message: 'License ID already registered' });
-        }
+      // Generate driver ID and license type ID
+      const driverId = await generateDriverId();
+      const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
 
-        // const driverId = await generateDriverId();
-        const hashedPassword = await bcrypt.hash(password, 10);
+      // Check if the generated license type ID is already registered
+      const existingDriverLicenseId = await Driver.findOne({ driverLicenseId: licenseTypeId }).session(session);
+      if (existingDriverLicenseId) {
+          return res.status(400).json({ message: 'License ID already registered' });
+      }
 
-        // Validate vehicle type
-        const vehicleType = await VehicleType.findOne({ vehicleTypeId }).session(session);
-        if (!vehicleType) {
-            return res.status(400).json({ message: 'Invalid vehicle type provided' });
-        }
+      // Hash the password
+      const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Generate license type and ID
-        // const licenseTypeId = await generateLicenseTypeId(vehicleTypeId);
+      // Validate the vehicle type
+      const vehicleType = await VehicleType.findOne({ vehicleTypeId }).session(session);
+      if (!vehicleType) {
+          return res.status(400).json({ message: 'Invalid vehicle type provided' });
+      }
 
-        // Create a new LicenseType entry for the user
-        const newLicenseType = new LicenseType({
-            licenseTypeId,
-            licenseTypeName,  // Name of the license (e.g., A1, B2)
-            vehicleTypeID: vehicleTypeId  // Correctly assign the vehicle type ID here
-        });
+      // Create a new LicenseType entry
+      const newLicenseType = new LicenseType({
+          licenseTypeId,
+          licenseTypeName, // Name of the license (e.g., A1, B2)
+          vehicleTypeID: vehicleTypeId // Link to the vehicle type
+      });
+      await newLicenseType.save({ session }); // Save with session
 
-        await newLicenseType.save({ session }); // Save with session
+      // Find or create role
+      const userRole = await Role.findOne({ roleId: role }).session(session);
+      if (!userRole) {
+          return res.status(400).json({ message: 'Invalid role provided' });
+      }
 
-        // Find or create role
-        const userRole = await Role.findOne({ roleId: role }).session(session);
-        if (!userRole) {
-            return res.status(400).json({ message: 'Invalid role provided' });
-        }
+      // Create new user
+      const newUser = new User({
+          userId: driverId,
+          userPhone: phone,
+          userPassword: hashedPassword,
+          userStatus: 'active', // Assuming status is active upon registration
+          userRole: userRole.roleId // Store the role ID from the Role model
+      });
+      await newUser.save({ session }); // Save with session
 
-        // Create new user
-        const newUser = new User({
-            userId: driverId,
-            userPhone: phone,
-            userPassword: hashedPassword,
-            userStatus: 'active', // Assuming status is active upon registration
-            userRole: userRole.roleId // Store the role ID from the Role model
-        });
+      // Create a Driver document if the role is 'Driver'
+      if (role === 'Driver') {
+          const newDriver = new Driver({
+              driverId,
+              driverName: name,
+              driverEmail: email,
+              driverPhone: phone,
+              driverAddress: address,
+              driverBirth: dob,
+              driverGender: gender,
+              driverCCCD: CCCD,
+              driverCCCDDate: CCCDDate,
+              driverNationality: nationality,
+              driverLicenseId: licenseTypeId,  // Use the generated license ID
+              driverLicenseType: licenseTypeName,  // License type name from input
+              driverVehicleBSX: vehiclePlate, // Vehicle license plate (biển số xe)
+              driverStatus: false, // Default status to false (not logged in)
+              driverViolation: 0, // Default 0 violations
+              userId: newUser.userId // Link to the User document
+          });
+          await newDriver.save({ session }); // Save with session
+      }
 
-        await newUser.save({ session }); // Save with session
+      // Create a Vehicle document for the user
+      const newVehicle = new Vehicle({
+          vehicleLicenseBSX: vehiclePlate,
+          vehicleTypeId: vehicleTypeId,
+          vehicleBrand,
+          vehicleManufacture,
+          vehicleColor,
+          vehicleDisplacement
+      });
+      await newVehicle.save({ session }); // Save with session
 
-        // Create a Driver document if the role is 'Driver'
-        if (role === 'Driver') {
-            const newDriver = new Driver({
-                driverId,
-                driverName: name,
-                driverEmail: email,
-                driverPhone: phone,
-                driverAddress: address,
-                driverBirth: dob,
-                driverGender: gender,
-                driverCCCD: CCCD,
-                driverCCCDDate: CCCDDate,
-                driverNationality: nationality,
-                driverLicenseId: licenseTypeId,  // Use string for license ID
-                driverLicenseType: licenseTypeName,  // Set license type name from input
-                driverVehicleBSX: vehiclePlate,
-                driverStatus: false, // Assuming true means logged in or available
-                driverViolation: 0, // Default 0 violations
-                userId: newUser._id
-            });
-
-            await newDriver.save({ session }); // Save with session
-        }
-
-        // Create a Vehicle document for the user
-        const newVehicle = new Vehicle({
-            vehicleLicenseBSX: vehiclePlate,
-            vehicleTypeId: vehicleTypeId,
-            vehicleBrand,
-            vehicleManufacture,
-            vehicleColor,
-            vehicleDisplacement
-        });
-        await newVehicle.save({ session }); // Save with session
-
-        // Commit the transaction if all operations succeeded
-        await session.commitTransaction();
-        res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
-    } catch (error) {
-        console.error('Error registering user:', error);
-        await session.abortTransaction(); // Rollback the transaction on error
-        res.status(500).json({ message: 'Error registering user', error: error.message });
-    } finally {
-        session.endSession(); // End the session
-    }
+      // Commit the transaction if all operations succeeded
+      await session.commitTransaction();
+      res.status(201).json({ message: 'User registered successfully', userId: newUser.userId });
+  } catch (error) {
+      console.error('Error registering user:', error);
+      await session.abortTransaction(); // Rollback the transaction on error
+      res.status(500).json({ message: 'Error registering user', error: error.message });
+  } finally {
+      session.endSession(); // End the session
+  }
 };
 // Login user
 const loginUser = async (req, res) => {
@@ -191,7 +317,7 @@ const loginUser = async (req, res) => {
     );
 
     res.status(200).json({ message: 'Login successful', token });
-    // console.log('Login successful', token);
+    console.log('Login successful', token);
   } catch (error) {
     console.error('Error logging in:', error);
     res.status(500).json({ message: 'Error logging in', error: error.message });

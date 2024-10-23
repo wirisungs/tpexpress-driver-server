@@ -1,39 +1,79 @@
-const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const User = require('../models/User.model');
-const { json } = require('body-parser');
+const Driver = require('../models/Driver.model');
 require('dotenv').config();
 
-// Middleware for authentication and decoding the JWT token
-const authenticateUser = (req, res, next) => {
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) {
-    return res.status(401).json({ message: 'Access denied. No token provided.' });
-  }
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded; // Extracts user info (e.g., userId)
-    next();
-  } catch (err) {
-    res.status(400).json({ message: 'Invalid token' });
-  }
+// Route to get the user profile
+const fetchUserProfile = async (req, res) => {
+    try {
+      const { userId } = req.user;  // Extract userId from the authenticated user
+      // Fetch driver profile based on userId (which is a string)
+      const driver = await Driver.findOne({ userId })  // Match driver by userId (String)
+        .exec(); // Ensure the query is executed
+
+      if (!driver) {
+        return res.status(404).json({ message: 'Driver profile not found' });
+      }
+
+      // Fetch user details separately using driver.userId (String)
+      const user = await User.findOne({ userId: driver.userId }) // Query the User model by userId field
+        .select('userPhone userRole'); // Select only needed fields
+
+      // Respond with the driver profile data
+      res.json({
+        driverName: driver.driverName,
+        driverPhone: driver.driverPhone,
+        driverLicenseType: driver.driverLicenseType,
+        vehiclePlate: driver.driverVehicleBSX,
+        driverLocation: driver.driverAddress,
+        userRole: user ? user.userRole : null,  // Check if user exists before accessing userRole
+      });
+    } catch (error) {
+      console.error('Error fetching driver profile:', error);  // Log the exact error
+      res.status(500).json({ message: 'Server error', error: error.message });
+    }
 };
 
-// Route to get the user profile
-const getUserProfile = async (req, res) => {
-  try {
-    const { userID } = req.user; // Assuming userId is part of the JWT token's payload
-    const user = await User.findById(userID);
 
+// Route to update the user profile
+const updateUserProfile = async (req, res) => {
+  const { userId } = req.user; // Get userId from authenticated user
+  const { name, phone, email, address, vehicleBrand, vehiclePlate, vehicleColor, vehicleDisplacement } = req.body;
+
+  try {
+    // Find the user by ID
+    const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: 'User not found' });
     }
 
-    res.status(200).json(user); // Send the user profile data
+    // Update user fields
+    if (name) user.name = name;
+    if (phone) user.userPhone = phone;
+    if (email) user.email = email;
+    if (address) user.address = address;
+
+    // Save the updated user
+    await user.save();
+
+    // If the user is a driver, update the driver profile as well
+    if (user.userRole === 'Driver') {
+      const driver = await Driver.findOne({ userId });
+      if (driver) {
+        if (vehicleBrand) driver.vehicleBrand = vehicleBrand;
+        if (vehiclePlate) driver.driverVehicleBSX = vehiclePlate;
+        if (vehicleColor) driver.vehicleColor = vehicleColor;
+        if (vehicleDisplacement) driver.vehicleDisplacement = vehicleDisplacement;
+
+        // Save the updated driver profile
+        await driver.save();
+      }
+    }
+
+    res.status(200).json({ message: 'User profile updated successfully' });
   } catch (err) {
-    console.error('Error fetching user profile:', err);
-    res.status(500).json({ message: "Server error" });
+    console.error('Error updating user profile:', err); // Detailed error logging
+    res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
-module.exports = { authenticateUser, getUserProfile };
+module.exports = { fetchUserProfile, updateUserProfile };
