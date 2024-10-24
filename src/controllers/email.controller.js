@@ -7,7 +7,7 @@ const sendEmail = (req, res) => {
 
   // Setup email options
   const mailOptions = {
-    from: '"TPExpress" <ngthuythienphuc2002@gmail.com>', // Sender address
+    from: '"TPExpress" <phucplaymc@gmail.com>', // Sender address
     to: to, // Recipient address
     subject: subject, // Subject line
     text: text, // Plain text body
