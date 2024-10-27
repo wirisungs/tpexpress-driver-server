@@ -1,5 +1,7 @@
 const User = require('../models/User.model');
 const Driver = require('../models/Driver.model');
+const Vehicle = require('../models/Vehicle.model');
+const VehicleType = require('../models/VehicleType.model');
 require('dotenv').config();
 
 // Route to get the user profile

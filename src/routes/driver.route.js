@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { toggleDriverStatus } = require('../controllers/driver.controller');
-const { authenticateUser } = require('../controllers/auth.controller');
+const { toggleDriverStatus, authenticateToken } = require('../controllers/driver.controller');
 
-router.post('/toggle-status', authenticateUser, toggleDriverStatus);
+router.post('/toggle-status', authenticateToken, toggleDriverStatus);
 
 module.exports = router;

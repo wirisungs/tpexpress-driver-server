@@ -1,154 +1,159 @@
 const { json } = require('body-parser');
 const Order = require('../models/Order.model');
+const OrderDetail = require('../models/OrderDetail.model');
+const Customer = require('../models/Customer.model');
+const DeliveryStatus = require('../models/DeliveryStatus.model');
 const User = require('../models/User.model');
 
-// Get orders with status 'Pending'
-const getOrder = async (req, res) => {
+//create order
+const createOrder = async (req, res) => {
+  const { Customer_ID, Order_Date, Order_Address, Order_Phone, Order_Note, Order_Total, Order_Status, Order_Payment } = req.body;
   try {
-    const orders = await Order.find({ status: 'Pending' }).lean();
+    const order = new Order({
+      Customer_ID,
+      Order_Date,
+      Order_Address,
+      Order_Phone,
+      Order_Note,
+      Order_Total,
+      Order_Status,
+      Order_Payment,
+    });
+    await order.save();
+    res.json(order);
+  } catch (error) {
+    console.error('Error creating order:', error);
+    res.status(500).json({ error: 'Error creating order' });
+  }
+}
+
+
+// Get orders with status_ID
+const getOrder = async (req, res) => {
+  const { status } = req.query;
+  try {
+    // Lọc đơn hàng theo Status nếu status được cung cấp
+    const orders = await Order.find({ Status_ID: 'ST001' });
     res.json(orders);
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ error: 'Error fetching orders' });
+    console.error('Lỗi khi lấy dữ liệu:', error);
+    res.status(500).json({ error: 'Lỗi khi lấy dữ liệu' });
   }
 };
 
-// Get orders with status 'Shipping' and match driverId by authenticated user
+// Get orders with status 'Đang vận chuyển' and match driverId by authenticated user
 const getOrderOngoing = async (req, res) => {
   const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
   try {
-    // Fetch all orders where the status is 'Shipping' and driverId matches
-    const orders = await Order.find({ status: 'Shipping', driverId }).lean();
-    res.status(200).json(orders);
+    const orders = await Order.find({ Status_ID: 'ST002', Driver_ID: driverId }).lean();
+    res.json(orders);
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    // Return a 500 status for server errors
+    console.error('Error fetching ongoing orders:', error);
     res.status(500).json({ error: 'Error fetching ongoing orders' });
   }
 };
 
-// Generate a unique order ID
-const generateOrderId = async () => {
-  return Math.random().toString(36).substr(2, 9).toUpperCase();
-};
-
-// Create a new order
-const createOrder = async (req, res) => {
-  const { customerId, item, pickupLocation, dropoffLocation, note, price } = req.body;
-
-  // Validate required fields
-  if (!customerId || !item || !pickupLocation || !dropoffLocation) {
-    return res.status(400).json({ message: 'Customer ID, item, pickupLocation, and dropoffLocation are required' });
-  }
+// Get order details by Order_ID
+const getOrderDetails = async (req, res) => {
+  const { Order_ID } = req.params;
   try {
-    const orderId = await generateOrderId();
-    const newOrder = new Order({
-      orderId,
-      customerId,
-      item,
-      pickupLocation,
-      dropoffLocation,
-      note,
-      price,
-      status: 'Pending' // Default status
-    });
-
-    console.log('Order created:', newOrder);
-
-    await newOrder.save();
-    res.status(201).json({ message: 'Order created successfully', order: newOrder });
+    const orderDetails = await OrderDetail.find({ Order_ID }).lean();
+    res.json(orderDetails);
   } catch (error) {
-    console.error('Error creating order:', error);
-    res.status(500).json({ message: 'Error creating order', error: error.message });
+    console.error('Error fetching order details:', error);
+    res.status(500).json({ error: 'Error fetching order details' });
   }
 };
 
-// Accept an order
+// Update order status to 'Đang vận chuyển' or 'Đã hoàn thành'
 const acceptOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const driverId = req.user.driverId; // Assuming req.user contains the authenticated user's information
+  const { Order_ID } = req.params;
+  const { Status_ID } = req.body;
+  const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
   try {
-    const order = await Order.findOne({ orderId });
+    // Check if the provided Status_ID exists
+    const statusExists = await DeliveryStatus.exists({ Status_ID });
+    if (!statusExists) {
+      return res.status(400).json({ error: 'Invalid Status_ID' });
+    }
+
+    // Ensure the current status is 'ST001' before updating to 'ST002'
+    const order = await Order.findOne({ Order_ID }).lean();
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'Pending') {
-      return res.status(400).json({ message: 'Order is not available for acceptance' });
+    if (order.Status_ID !== 'ST001') {
+      return res.status(400).json({ error: 'Order status must be ST001 to update to ST002' });
     }
-    order.status = 'Shipping';
-    order.driverId = driverId;
-    await order.save();
-    res.status(200).json({ message: 'Order accepted successfully', order });
+    const updatedOrder = await Order.findOneAndUpdate({ Order_ID }, { Status_ID, Driver_ID: driverId }, { new: true }).lean();
+    res.json(updatedOrder);
   } catch (error) {
-    console.error('Error accepting order:', error);
-    res.status(500).json({ message: 'Server error', error });
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Error updating order status' });
   }
 };
 
-// Reject an order
-const rejectOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const driverId = req.user.driverId; // Assuming req.user contains the authenticated user's information
-  try {
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
-    }
-    if (order.status !== 'Pending') {
-      return res.status(400).json({ message: 'Order is not available for rejection' });
-    }
-    order.status = 'Rejected';
-    order.driverId = driverId;
-    await order.save();
-    res.status(200).json({ message: 'Order rejected successfully', order });
-  } catch (error) {
-    console.error('Error rejecting order:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
-
-// Complete an order
+// Update order status to 'Đã hoàn thành'
 const completeOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const driverId = req.user.driverId; // Assuming req.user contains the authenticated user's information
+  const { Order_ID } = req.params;
+  const { Status_ID } = req.body;
   try {
-    const order = await Order.findOne({ orderId });
+    // Check if the provided Status_ID exists
+    const statusExists = await DeliveryStatus.exists({ Status_ID });
+    if (!statusExists) {
+      return res.status(400).json({ error: 'Invalid Status_ID' });
+    }
+
+    // Ensure the current status is 'ST002' before updating to 'ST003'
+    const order = await Order.findOne({ Order_ID }).lean();
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ error: 'Order not found' });
     }
-    if (order.status !== 'Shipping') {
-      return res.status(400).json({ message: 'Order is not available for completion' });
+    if (order.Status_ID !== 'ST002') {
+      return res.status(400).json({ error: 'Order status must be ST002 to update to ST003' });
     }
-    order.status = 'Completed';
-    order.driverId = driverId;
-    await order.save();
-    res.status(200).json({ message: 'Order completed successfully', order });
+
+    const updatedOrder = await Order.findOneAndUpdate({ Order_ID }, { Status_ID }, { new: true }).lean();
+    res.json(updatedOrder);
   } catch (error) {
-    console.error('Error completing order:', error);
-    res.status(500).json({ message: 'Server error', error });
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Error updating order status' });
   }
 };
 
-// Cancel an order
+//Update status to 'Đã hủy'
 const cancelOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const driverId = req.user.driverId; // Assuming req.user contains the authenticated user's information
+  const { Order_ID } = req.params;
+  const { Status_ID } = req.body;
   try {
-    const order = await Order.findOne({ orderId });
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+    // Check if the provided Status_ID exists
+    const statusExists = await DeliveryStatus.exists({ Status_ID });
+    if (!statusExists) {
+      return res.status(400).json({ error: 'Invalid Status_ID' });
     }
-    if (order.status !== 'Shipping') {
-      return res.status(400).json({ message: 'Order is not available for cancellation' });
-    }
-    order.status = 'Cancelled';
-    order.driverId = driverId;
-    await order.save();
-    res.status(200).json({ message: 'Order cancelled successfully', order });
-  } catch (error) {
-    console.error('Error cancelling order:', error);
-    res.status(500).json({ message: 'Server error', error });
-  }
-};
 
-module.exports = { getOrder, getOrderOngoing, createOrder, acceptOrder, rejectOrder, completeOrder, cancelOrder };const { find, findOne } = require('../models/User.model');
+    // Ensure the current status is 'ST001' before updating to 'ST004'
+    const order = await Order.findOne({ Order_ID }).lean();
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+    if (order.Status_ID !== 'ST001' || order.Status_ID !== 'ST002') {
+      return res.status(400).json({ error: 'Order status must be ST001 to update to ST004' });
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate({ Order_ID }, { Status_ID }, { new: true }).lean();
+    res.json(updatedOrder);
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Error updating order status' });
+  }
+}
+
+module.exports = {
+  getOrder,
+  getOrderOngoing,
+  getOrderDetails,
+  acceptOrder,
+  completeOrder,
+  cancelOrder,
+};

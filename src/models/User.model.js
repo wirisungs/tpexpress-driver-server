@@ -24,6 +24,10 @@ const UserSchema = new mongoose.Schema({
     ref: 'Role',
     required: true
   },
+  userVerify: {
+    type: Boolean,
+    default: false
+  }
 }, { collection: 'User' });
 
 module.exports = mongoose.model('User', UserSchema);
