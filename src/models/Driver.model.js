@@ -26,9 +26,10 @@ const DriverSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
-  driverGender: { //giới tính
-    type: String,
-    required: true
+  driverGender: { //giới tính (0: Nam, 1: Nữ)
+    type: Number,
+    required: true,
+    enum: [0, 1]
   },
   driverCCCD: { //số CCCD
     type: String,
@@ -67,7 +68,7 @@ const DriverSchema = new mongoose.Schema({
     required: false
   },
   userId: { //mã người dùng
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: 'User',
     required: true
   }

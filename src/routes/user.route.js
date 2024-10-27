@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const controller = require('../controllers/user.controller');
+const { fetchUserProfile, updateUserProfile } = require('../controllers/user.controller');
+const { authenticateUser } = require('../middleware/auth.middleware');
 
-router.get('/profile', controller.authenticateUser, controller.getUserProfile);
-
-
+// Define routes
+router.get('/profile', authenticateUser, fetchUserProfile);
+router.put('/profile/update', authenticateUser, updateUserProfile);
 
 module.exports = router;

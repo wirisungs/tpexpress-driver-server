@@ -1,17 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getOrder, getOrderOngoing, createOrder, acceptOrder, rejectOrder, completeOrder, cancelOrder } = require('../controllers/order.controller');
-const { authenticateUser } = require('../controllers/auth.controller'); // Middleware to authenticate user
-const { create } = require('../models/User.model');
+const { getOrder, getOrderOngoing, getOrderDetails, acceptOrder, completeOrder, cancelOrder } = require('../controllers/order.controller');
+const { authenticateUser } = require('../middleware/auth.middleware'); // Middleware to authenticate user
 
 // Define routes
-router.get('/', getOrder);
+router.get('/pending', authenticateUser, getOrder);
 router.get('/ongoing', authenticateUser, getOrderOngoing);
-// router.post('/create', authenticateUser, createOrder);
-router.post('/create', createOrder);
-router.put('/accept/:orderId', authenticateUser, acceptOrder);
-router.put('/reject/:orderId', authenticateUser, rejectOrder);
-router.put('/complete/:orderId', authenticateUser, completeOrder);
-router.put('/cancel/:orderId', authenticateUser, cancelOrder);
+router.get('/:Order_ID', authenticateUser, getOrderDetails);
+router.put('/accept/:Order_ID', authenticateUser, acceptOrder);
+router.put('/complete/:Order_ID', authenticateUser, completeOrder);
+router.put('/cancel/:Order_ID', authenticateUser, cancelOrder);
 
 module.exports = router;
