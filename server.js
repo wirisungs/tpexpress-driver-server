@@ -2,6 +2,8 @@
 const express = require('express')
 const app = express()
 const bodyParser = require('body-parser');
+const EventEmitter = require('events');
+
 
 //routes
 const orderRoutes = require('./src/routes/order.route');
@@ -16,7 +18,7 @@ require('dotenv').config();
 const port = process.env.PORT || 3000;
 
 //setup database
-const db = require('./src/data/db.mongo.config');
+const db = require('./src/config/db.mongo.config');
 db();
 
 //middleware
@@ -35,7 +37,6 @@ app.use((err, req, res, next) => {
 });
 
 //Increase the max listerners limit
-const EventEmitter = require('events');
 EventEmitter.defaultMaxListeners = 20;
 
 //route
