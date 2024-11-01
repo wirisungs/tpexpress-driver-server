@@ -172,6 +172,10 @@ const registerUser = async (req, res) => {
     }
 };
 
+const formatPhoneNumber = (userPhone) => {
+    return `+84${userPhone.slice(1)}`;
+}
+
 //Send OTP via Phone number
 const sendOtp = async (userPhone) => {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();

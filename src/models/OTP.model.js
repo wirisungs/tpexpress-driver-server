@@ -14,6 +14,6 @@ const OTPSchema = new mongoose.Schema({
     type: Date,
     required: true
   }
-}, [{ collection: 'OTP' }])
+}, { collection: 'OTP' });
 
 module.exports = mongoose.model('OTP', OTPSchema)
