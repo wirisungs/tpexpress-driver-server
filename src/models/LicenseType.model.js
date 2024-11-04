@@ -3,15 +3,15 @@ const mongoose = require('mongoose');
 const LicenseTypeSchema = new mongoose.Schema({
   licenseTypeId: { //mã loại bằng lái
     type: String,
-    required: true,
+    default: null,
   },
   licenseTypeName: { //tên loại bằng lái
     type: String,
-    required: true
+    default: null
   },
   vehicleTypeID: {  //loại xe
     type: String,
-    required: true,
+    default: null,
     ref: 'VehicleType' // Referencing the VehicleType model
   },
 }, { collection: 'LicenseType' });

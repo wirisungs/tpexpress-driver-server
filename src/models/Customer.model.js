@@ -2,32 +2,32 @@ const mongoose = require('mongoose');
 
 // Define schema for Customer
 const CustomerSchema = new mongoose.Schema({
-  cus_Name: {
+  cusName: {
     type: String,
     required: true
   },
-  cus_Email: {
+  cusEmail: {
     type: String,
     required: true
   },
-  cus_Phone: {
+  cusPhone: {
     type: String,
     required: true
   },
-  cus_Address: {
+  cusAddress: {
     type: String,
     required: true
   },
-  cus_Birhday: {
+  cusBirhday: {
     type: Date,
     required: true
   },
-  cus_Gender: {
+  cusGender: {
     type: Number,
     required: true,
     enum: [0, 1] // 0 for male, 1 for female
   },
-  cus_ID: {
+  cusId: {
     type: String,
     required: true,
     unique: true

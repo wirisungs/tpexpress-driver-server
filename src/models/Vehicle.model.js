@@ -4,30 +4,29 @@ const mongoose = require('mongoose');
 const VehicleSchema = new mongoose.Schema({
   vehicleLicenseBSX: { //biển số xe
     type: String,
-    required: true,
-    unique: true,
+    default: null,
     ref: 'Driver' // Referencing the Driver model
   },
   vehicleTypeId: { //loại xe
     type: String,
-    required: true,
+    default: null,
     ref: 'VehicleType', // Referencing the VehicleType model
   },
   vehicleBrand: { //hãng xe
     type: String,
-    required: true
+    default: null
   },
   vehicleManufacture: { //năm sản xuất
     type: Date,
-    required: true
+    default: null
   },
   vehicleColor: { //màu xe
     type: String,
-    required: true
+    default: null
   },
   vehicleDisplacement: { //phân khối
     type: String,
-    required: true
+    default: null
   },
 }, { collection: 'Vehicle' });
 

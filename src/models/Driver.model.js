@@ -20,52 +20,50 @@ const DriverSchema = new mongoose.Schema({
   },
   driverAddress: { //địa chỉ
     type: String,
-    required: true
+    default: null
   },
   driverBirth:{ //ngày sinh
     type: Date,
-    required: true
+    default: null
   },
   driverGender: { //giới tính (0: Nam, 1: Nữ)
     type: Number,
-    required: true,
     enum: [0, 1]
   },
   driverCCCD: { //số CCCD
     type: String,
-    required: true,
-    unique: true
+    unique: true,
+    default: null
   },
   driverCCCDDate: { //ngày cấp
     type: Date,
-    required: true
+    default: null
   },
   driverNationality: { //quốc tịch
     type: String,
-    required: true
+    default: "Việt Nam"
   },
   driverLicenseId: { //bằng lái xe
     type: String,
     ref: 'LicenseType',
-    required: true,
+    default: null
   },
   driverLicenseType: { //loại bằng lái
     type: String,
-    required: true,
-    ref: 'LicenseType' // Referencing the LicenseType model
+    ref: 'LicenseType', // Referencing the LicenseType model
+    default: null
   },
   driverVehicleBSX: { //biển số xe
     type: String,
-    required: true
+    default: null
   },
-  driverStatus: { //trạng thái đăng nhập
+  driverStatus: { //trạng thái hoạt động của tài xế
     type: Boolean,
-    required: true,
-    default: false
+    default: false,
   },
   driverViolation: { //vi phạm
     type: Number,
-    required: false
+    default: 0
   },
   userId: { //mã người dùng
     type: String,
