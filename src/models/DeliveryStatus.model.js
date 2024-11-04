@@ -1,12 +1,16 @@
 const mongoose = require('mongoose');
 
-// Define schema for DeliveryStatus
-const DeliveryStatusSchema = new mongoose.Schema(
+// Định nghĩa schema cho DeliveryStatus
+const statusSchema = new mongoose.Schema(
   {
-    Status_ID: { type: String, required: true, unique: true },
-    Status_Name: { type: String, required: true },
+    statusId: { type: String, required: true, unique: true },
+    statusName: { type: String, required: true },
   },
-  { collection: 'DeliveryStatus' } // Ensure using the correct collection in MongoDB
+  { collection: 'DeliveryStatus' } // Đảm bảo dùng đúng collection trong MongoDB
 );
 
-module.exports = mongoose.model('DeliveryStatus', DeliveryStatusSchema);
+// Tạo model từ schema
+const DeliveryStatus = mongoose.model('DeliveryStatus', statusSchema);
+
+// Xuất model bằng module.exports
+module.exports = DeliveryStatus;

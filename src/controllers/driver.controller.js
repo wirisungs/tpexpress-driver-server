@@ -2,22 +2,25 @@ const Driver = require('../models/Driver.model');
 require('dotenv').config();
 
 const toggleDriverStatus = async (req, res) => {
-  const { driverId } = req.body;
   try {
-    // Simulating a status toggle. Replace with your actual logic.
+    const driverId = req.params.id;
     const driver = await Driver.findById(driverId);
+
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }
 
-    driver.isWorking = !driver.isWorking; // Example toggle logic
-    await driver.save();
+    // Toggle the driver status
+    driver.driverStatus = !driver.driverStatus;
 
-    return res.json({ message: 'Driver status updated successfully' });
+    await driver.save();
+    return res.status(200).json({
+      message: 'Driver status updated',
+      driverStatus: driver.driverStatus  // Return the updated driverStatus
+    });
   } catch (error) {
-    console.error('Error updating driver status:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    return res.status(500).json({ message: 'Server error', error: error.message });
   }
-};
+}
 
 module.exports = { toggleDriverStatus };

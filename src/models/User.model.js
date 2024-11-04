@@ -5,7 +5,6 @@ const UserSchema = new mongoose.Schema({
   userId: { //mã người dùng
     type: String,
     required: true,
-    unique: true
   },
   userPhone: { //số điện thoại
     type: String,
@@ -24,10 +23,6 @@ const UserSchema = new mongoose.Schema({
     ref: 'Role',
     required: true
   },
-  userVerify: {
-    type: Boolean,
-    default: false
-  }
 }, { collection: 'User' });
 
 module.exports = mongoose.model('User', UserSchema);

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 // Định nghĩa schema cho DeliveryStatus
-const OrderDetailSchema = new mongoose.Schema(
+const statusSchema = new mongoose.Schema(
   {
     Item_ID: { type: String, required: true, unique: true },
     Item_Name: { type: String, required: true },
@@ -13,7 +13,7 @@ const OrderDetailSchema = new mongoose.Schema(
 );
 
 // Tạo model từ schema
-const OrderDetail = mongoose.model('OrderDetail', OrderDetailSchema);
+const OrderDetail = mongoose.model('OrderDetail', statusSchema);
 
 // Xuất model bằng module.exports
 module.exports = OrderDetail;
