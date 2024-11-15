@@ -3,15 +3,15 @@ require('dotenv').config();
 
 const toggleDriverStatus = async (req, res) => {
   try {
-    const driverId = req.params.id;
+    const driverId = req.user; // Extract driverId from the authenticated user
     const driver = await Driver.findById(driverId);
 
     if (!driver) {
       return res.status(404).json({ message: 'Driver not found' });
     }
 
-    // Toggle the driver status
-    driver.driverStatus = !driver.driverStatus;
+    // Ensure driverStatus is boolean and toggle it
+    driver.driverStatus = !Boolean(driver.driverStatus);
 
     await driver.save();
     return res.status(200).json({

@@ -4,7 +4,6 @@ const app = express()
 const bodyParser = require('body-parser');
 const EventEmitter = require('events');
 
-
 //routes
 const orderRoutes = require('./src/routes/order.route');
 const authRoutes = require('./src/routes/auth.route');

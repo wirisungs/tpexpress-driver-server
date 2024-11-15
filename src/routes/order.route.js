@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getOrder, getOrderOngoing, getOrderDetails, acceptOrder, completeOrder, cancelOrder } = require('../controllers/order.controller');
+const { getOrder, getOrderOngoing, getOrderDetails, acceptOrder, completeOrder, cancelOrder, getOrderCompleted, getOrderCanceled } = require('../controllers/order.controller');
 const { authenticateUser } = require('../middleware/auth.middleware'); // Middleware to authenticate user
 
 // Define routes
