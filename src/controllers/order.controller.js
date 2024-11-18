@@ -17,7 +17,7 @@ const getOrder = async (req, res) => {
   }
 };
 
-// Get orders with status 'Đang vận chuyển' and match driverId by authenticated user
+// Get orders with status 'Đang vận chuyển' for a driver my driverId
 const getOrderOngoing = async (req, res) => {
   const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
   try {
@@ -45,7 +45,15 @@ const getOrderDetails = async (req, res) => {
 const acceptOrder = async (req, res) => {
   const { orderId } = req.params;
   const { statusId } = req.body;
-  const { driverId } = req.user; // Assuming `driverId` is available in `req.user`
+
+  // Log the decoded user to check if driverId is present
+  console.log('Decoded user:', req.user);
+
+  const driverId = req.user?.driverId; // Assuming the driverId is stored in the JWT token
+
+  if (!driverId) {
+    return res.status(400).json({ error: 'Driver ID is required' });
+  }
 
   try {
     // Log driverId and orderId for debugging
@@ -57,7 +65,7 @@ const acceptOrder = async (req, res) => {
       return res.status(400).json({ error: 'Invalid statusId' });
     }
 
-    // Find order and verify current status
+    // Find the order and verify current status
     const order = await Order.findOne({ orderId }).lean();
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });

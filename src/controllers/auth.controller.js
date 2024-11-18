@@ -131,21 +131,37 @@ const loginUser = async (req, res) => {
     const { phone, password } = req.body;
 
     try {
+        // Step 1: Find the user by phone number
         const user = await User.findOne({ userPhone: phone });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
+        // Step 2: Check if the user is a driver
         if (user.userRole !== 'Driver') {
             return res.status(403).json({ message: 'Access denied. Only drivers can log in.' });
         }
 
+        // Step 3: Verify the password
         const isPasswordValid = await bcrypt.compare(password, user.userPassword);
         if (!isPasswordValid) {
             return res.status(401).json({ message: 'Invalid password' });
         }
 
-        const token = jwt.sign({ userId: user.userId, role: user.userRole }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // Step 4: Fetch driver details to get driverId
+        const driver = await Driver.findOne({ userId: user.userId }); // Assuming the Driver model has a reference to userId
+        if (!driver) {
+            return res.status(404).json({ message: 'Driver not found' });
+        }
+
+        // Step 5: Generate JWT token with driverId
+        const token = jwt.sign(
+            { userId: user.userId, role: user.userRole, driverId: driver.driverId },  // Include driverId in the token
+            process.env.JWT_SECRET,
+            { expiresIn: '1h' }
+        );
+
+        // Step 6: Send response with the token
         res.status(200).json({ message: 'Login successful', token });
     } catch (error) {
         console.error('Error logging in:', error);
