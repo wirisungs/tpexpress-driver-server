@@ -4,6 +4,88 @@ const Vehicle = require('../models/Vehicle.model');
 const VehicleType = require('../models/VehicleType.model');
 require('dotenv').config();
 
+const getDriver = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const status = await Driver.findOne({ driverId: id });
+
+    if (!status) {
+      return res.status(404).json({ message: 'Không tìm thấy tài xế' });
+    }
+    res.json(status);
+  } catch (error) {
+    console.error('Lỗi khi lấy thông tin tài xế:', error);
+    res.status(500).json({ message: 'Lỗi khi lấy thông tin tài xế', error: error.message });
+  }
+};
+
+const getUserEmail = async (req, res) => {
+  const { email } = req.query;
+
+  try {
+    const driver = await Driver.findOne({ driverEmail: email });
+
+    if(driver) {
+      return res.json({exists: true})
+    } else {
+      return res.json({exists: false})
+    }
+  } catch (error) {
+    console.error('Lỗi khi kiểm tra email:', error);
+    res.status(500).json({ error: 'Lỗi khi kiểm tra email' });
+  }
+};
+
+const saveUserProfileFromSSO = async (req, res) => {
+  const { driverId, name, email, phone, address, birth, gender } = req.body;
+  console.log("Dữ liệu nhận từ frontend:", req.body);
+
+  try {
+    const existingDriver = await Driver.findOne({ driverEmail: email });
+    console.log("Kiểm tra email tồn tại", existingDriver);
+
+    if (existingDriver) {
+      return res.status(400).json({ message: 'Email đã tồn tại' });
+    }
+    const newDriver = new Driver({
+      driverId: driverId,
+      driverName: name,
+      driverEmail: email,
+      driverPhone: phone,
+      driverAddress: address,
+      driverGender: gender,
+      driverBirth: birth,
+    });
+    console.log("Đã thêm tài xế mới", newDriver);
+
+    await newDriver.save();
+    res.status(201).json({ message: 'Tài xế đã được thêm thành công', driver: newDriver });
+  } catch (error) {
+    console.error('Lỗi khi thêm tài xế:', error);
+    res.status(500).json({ message: 'Lỗi khi thêm tài xế', error: error.message });
+  }
+};
+
+const checkDriverEmail = async (req, res) => {
+  const { email } = req.query;
+
+  if(!email) {
+    return res.json(200).json({ message: 'Email không được để trống' });
+  }
+
+  try {
+    const driver = await Driver.findOne( { driverEmail: email });
+    if(driver) {
+      return res.json({ exists: true, driver });
+    } else {
+      return res.json({ exists: false, message: 'Email không tồn tại trong hệ thống' });
+    }
+  } catch (error) {
+      res.status(500).json({ message: 'Lỗi khi kiểm tra email', error: error.message });
+    }
+  };
+
 // Route to get the user profile
 const fetchUserProfile = async (req, res) => {
     try {
@@ -78,4 +160,4 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { fetchUserProfile, updateUserProfile };
+module.exports = { fetchUserProfile, updateUserProfile, getDriver, getUserEmail, saveUserProfileFromSSO, checkDriverEmail };

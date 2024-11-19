@@ -45,10 +45,8 @@ const getOrderDetails = async (req, res) => {
 const acceptOrder = async (req, res) => {
   const { orderId } = req.params;
   const { statusId } = req.body;
-
   // Log the decoded user to check if driverId is present
   console.log('Decoded user:', req.user);
-
   const driverId = req.user?.driverId; // Assuming the driverId is stored in the JWT token
 
   if (!driverId) {
