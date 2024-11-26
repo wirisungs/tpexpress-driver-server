@@ -5,20 +5,20 @@ const bodyParser = require('body-parser');
 const EventEmitter = require('events');
 
 //routes
-const orderRoutes = require('./src/routes/order.route');
-const authRoutes = require('./src/routes/auth.route');
-const userRoutes = require('./src/routes/user.route');
-const cityRoutes = require('./src/routes/city.route');
-const driverRoutes = require('./src/routes/driver.route');
-const emailRoutes = require('./src/routes/email.route');
-const itemRoutes = require('./src/routes/item.route');
+const orderRoutes = require('../src/routes/order.route');
+const authRoutes = require('../src/routes/auth.route');
+const userRoutes = require('../src/routes/user.route');
+const cityRoutes = require('../src/routes/city.route');
+const driverRoutes = require('../src/routes/driver.route');
+const emailRoutes = require('../src/routes/email.route');
+const itemRoutes = require('../src/routes/item.route');
 require('dotenv').config();
 
 //port
 const port = process.env.PORT || 3000;
 
 //setup database
-const db = require('./src/config/db.mongo.config');
+const db = require('../src/config/db.mongo.config');
 db();
 
 //middleware
