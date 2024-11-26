@@ -4,7 +4,6 @@ const app = express()
 const bodyParser = require('body-parser');
 const EventEmitter = require('events');
 
-
 //routes
 const orderRoutes = require('./src/routes/order.route');
 const authRoutes = require('./src/routes/auth.route');
@@ -12,6 +11,7 @@ const userRoutes = require('./src/routes/user.route');
 const cityRoutes = require('./src/routes/city.route');
 const driverRoutes = require('./src/routes/driver.route');
 const emailRoutes = require('./src/routes/email.route');
+const itemRoutes = require('./src/routes/item.route');
 require('dotenv').config();
 
 //port
@@ -46,6 +46,7 @@ app.use('/user', userRoutes);
 app.use('/city', cityRoutes);
 app.use('/driver', driverRoutes);
 app.use('/email', emailRoutes);
+app.use('/item', itemRoutes);
 
 app.listen(port, () => {
   console.log(`Up and Running! TPExpress Driver Server is running on http://localhost:${port}`)

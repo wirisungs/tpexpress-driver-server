@@ -17,7 +17,7 @@ const getOrder = async (req, res) => {
   }
 };
 
-// Get orders with status 'Đang vận chuyển' and match driverId by authenticated user
+// Get orders with status 'Đang vận chuyển' for a driver my driverId
 const getOrderOngoing = async (req, res) => {
   const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
   try {
@@ -41,19 +41,29 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
-// Update order status to 'Đang vận chuyển' or 'Đã hoàn thành'
+// Update order status to 'Đang vận chuyển'
 const acceptOrder = async (req, res) => {
   const { orderId } = req.params;
   const { statusId } = req.body;
-  const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
+  // Log the decoded user to check if driverId is present
+  console.log('Decoded user:', req.user);
+  const driverId = req.user?.driverId; // Assuming the driverId is stored in the JWT token
+
+  if (!driverId) {
+    return res.status(400).json({ error: 'Driver ID is required' });
+  }
+
   try {
+    // Log driverId and orderId for debugging
+    console.log('Accepting order with orderId:', orderId, 'and driverId:', driverId);
+
     // Check if the provided statusId exists
     const statusExists = await DeliveryStatus.exists({ statusId });
     if (!statusExists) {
       return res.status(400).json({ error: 'Invalid statusId' });
     }
 
-    // Ensure the current status is 'ST001' before updating to 'ST002'
+    // Find the order and verify current status
     const order = await Order.findOne({ orderId }).lean();
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
@@ -61,7 +71,15 @@ const acceptOrder = async (req, res) => {
     if (order.orderStatusId !== 'ST001') {
       return res.status(400).json({ error: 'Order status must be ST001 to update to ST002' });
     }
-    const updatedOrder = await Order.findOneAndUpdate({ orderId }, { orderStatusId: statusId, driverId: driverId }, { new: true }).lean();
+
+    // Update order status to 'ST002' and set driverId
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { orderStatusId: statusId, driverId: driverId },
+      { new: true }
+    ).lean();
+
+    // Send updated order response
     res.json(updatedOrder);
   } catch (error) {
     console.error('Error updating order status:', error);
@@ -126,6 +144,7 @@ const cancelOrder = async (req, res) => {
 }
 
 const getOrderCompleted = async (req, res) => {
+    const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
     try {
         console.log('Fetching completed orders for driver:', driverId);
         const orders = await Order.find({ orderStatusId: 'ST003', driverId: driverId }).lean();
