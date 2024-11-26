@@ -4,13 +4,13 @@ const { getOrder, getOrderOngoing, getOrderDetails, acceptOrder, completeOrder, 
 const { authenticateUser } = require('../middleware/auth.middleware'); // Middleware to authenticate user
 
 // Define routes
-router.get('/pending', authenticateUser, getOrder);
-router.get('/ongoing', authenticateUser, getOrderOngoing);
-router.get('/:orderId', authenticateUser, getOrderDetails);
-router.put('/accept/:orderId', authenticateUser, acceptOrder);
-router.put('/complete/:orderId', authenticateUser, completeOrder);
-router.put('/cancel/:orderId', authenticateUser, cancelOrder);
-router.get('/completed', authenticateUser, getOrderCompleted);
-router.get('/canceled', authenticateUser, getOrderCanceled);
+router.get('/pending', getOrder);
+router.get('/ongoing/:driverId', getOrderOngoing);
+router.get('/:orderId', getOrderDetails);
+router.put('/accept/:orderId', acceptOrder);
+router.put('/complete/:orderId', completeOrder);
+router.put('/cancel/:orderId', cancelOrder);
+router.get('/completed', getOrderCompleted);
+router.get('/canceled', getOrderCanceled);
 
 module.exports = router;

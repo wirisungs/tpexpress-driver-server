@@ -4,11 +4,11 @@ const { fetchUserProfile, updateUserProfile, getDriver, getUserEmail, saveUserPr
 const { authenticateUser } = require('../middleware/auth.middleware');
 
 // Define routes
-router.get('/profile', authenticateUser, fetchUserProfile);
-router.put('/profile/update', authenticateUser, updateUserProfile);
-router.get('/driver/:id', authenticateUser, getDriver);
-router.get('/email', authenticateUser, getUserEmail);
-router.post('/sso/save', authenticateUser, saveUserProfileFromSSO);
-router.get('/email/check', authenticateUser, checkDriverEmail);
+router.get('/profile/:driverId', fetchUserProfile);
+router.put('/profile/update', updateUserProfile);
+router.get('/driver/:id', getDriver);
+router.get('/email', getUserEmail);
+router.post('/sso/save', saveUserProfileFromSSO);
+router.get('/email/check', checkDriverEmail);
 
 module.exports = router;

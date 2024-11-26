@@ -3,20 +3,15 @@ const mongoose = require('mongoose');
 const DriverSchema = new mongoose.Schema({
   driverId: { //mã tài xế
     type: String,
-    required: true,
-    unique: true
   },
   driverName: { //tên
     type: String,
-    required: true
   },
   driverEmail: { //email
     type: String,
-    required: true
   },
   driverPhone: { //số điện thoại
     type: String,
-    required: true
   },
   driverAddress: { //địa chỉ
     type: String,
@@ -65,11 +60,11 @@ const DriverSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  userId: { //mã người dùng
-    type: String,
-    ref: 'User',
-    required: true
-  }
+  // userId: { //mã người dùng
+  //   type: String,
+  //   ref: 'User',
+  //   required: true
+  // }
 }, { collection: 'Driver' });
 
 module.exports = mongoose.model('Driver', DriverSchema);

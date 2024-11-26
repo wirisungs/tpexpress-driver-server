@@ -17,17 +17,27 @@ const getOrder = async (req, res) => {
   }
 };
 
-// Get orders with status 'Đang vận chuyển' for a driver my driverId
+// Get orders with status 'Đang vận chuyển' for a driver by driverId
 const getOrderOngoing = async (req, res) => {
-  const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
-  try {
-    const orders = await Order.find({ orderStatusId: 'ST002', driverId: driverId }).lean();
-    res.json(orders);
-  } catch (error) {
-    console.error('Error fetching ongoing orders:', error);
-    res.status(500).json({ error: 'Error fetching ongoing orders' });
-  }
-};
+    const { driverId } = req.params; // Lấy driverId từ URL params
+    try {
+      // Tìm các đơn hàng với driverId và trạng thái 'ST002' (đơn hàng đang xử lý)
+      const orders = await Order.find({ orderStatusId: 'ST002', driverId: driverId }).lean();
+
+      // Nếu không có đơn hàng nào, trả về mảng rỗng
+      if (orders.length === 0) {
+        return res.status(404).json({ message: 'Không có đơn hàng nào' });
+      }
+
+      // Trả về danh sách đơn hàng
+      res.json(orders);
+    } catch (error) {
+      console.error('Lỗi khi lấy đơn hàng đang xử lý:', error);
+      res.status(500).json({ error: 'Lỗi khi lấy đơn hàng đang xử lý' });
+    }
+  };
+
+  module.exports = { getOrderOngoing };
 
 // Get order details by orderId
 const getOrderDetails = async (req, res) => {
@@ -41,13 +51,10 @@ const getOrderDetails = async (req, res) => {
   }
 };
 
-// Update order status to 'Đang vận chuyển'
+// Accept an order and change status to 'Đang vận chuyển'
 const acceptOrder = async (req, res) => {
   const { orderId } = req.params;
-  const { statusId } = req.body;
-  // Log the decoded user to check if driverId is present
-  console.log('Decoded user:', req.user);
-  const driverId = req.user?.driverId; // Assuming the driverId is stored in the JWT token
+  const { statusId, driverId } = req.body; // driverId is now from the request body
 
   if (!driverId) {
     return res.status(400).json({ error: 'Driver ID is required' });
@@ -87,7 +94,7 @@ const acceptOrder = async (req, res) => {
   }
 };
 
-// Update order status to 'Đã hoàn thành'
+// Complete an order and update status to 'Đã hoàn thành'
 const completeOrder = async (req, res) => {
   const { orderId } = req.params;
   const { statusId } = req.body;
@@ -115,7 +122,7 @@ const completeOrder = async (req, res) => {
   }
 };
 
-// Update status to 'Đã hủy'
+// Cancel an order and update status to 'Đã hủy'
 const cancelOrder = async (req, res) => {
   const { orderId } = req.params;
   const { statusId } = req.body;
@@ -138,34 +145,38 @@ const cancelOrder = async (req, res) => {
     const updatedOrder = await Order.findOneAndUpdate({ orderId }, { orderStatusId: statusId }, { new: true }).lean();
     res.json(updatedOrder);
   } catch (error) {
-        console.error('Error updating order status:', error);
-        res.status(500).json({ error: 'Error updating order status' });
+    console.error('Error updating order status:', error);
+    res.status(500).json({ error: 'Error updating order status' });
   }
-}
+};
 
+// Get completed orders for a specific driver
 const getOrderCompleted = async (req, res) => {
-    const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
-    try {
-        console.log('Fetching completed orders for driver:', driverId);
-        const orders = await Order.find({ orderStatusId: 'ST003', driverId: driverId }).lean();
-        res.json(orders);
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-        res.status(500).json({ error: 'Error fetching orders' });
-    }
-}
+  const { driverId } = req.body; // Assuming req.user contains the authenticated driver's information
+  try {
+    console.log('Fetching completed orders for driver:', driverId);
+    const orders = await Order.find({ orderStatusId: 'ST003', driverId: driverId }).lean();
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching completed orders:', error);
+    res.status(500).json({ error: 'Error fetching completed orders' });
+  }
+};
 
+// Get canceled orders for a specific driver
 const getOrderCanceled = async (req, res) => {
-    const { driverId } = req.user; // Assuming req.user contains the authenticated user's information
-    try {
-        console.log('Fetching canceled orders for driver:', driverId);
-        const orders = await Order.find({ orderStatusId: 'ST004', driverId: driverId }).lean();
-        res.json(orders);
-    } catch (error) {
-        console.error('Error fetching canceled orders:', error);
-        res.status(500).json({ error: 'Error fetching canceled orders' });
-    }
-}
+  const { driverId } = req.body; // Assuming req.user contains the authenticated driver's information
+  try {
+    console.log('Fetching canceled orders for driver:', driverId);
+    const orders = await Order.find({ orderStatusId: 'ST004', driverId: driverId }).lean();
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching canceled orders:', error);
+    res.status(500).json({ error: 'Error fetching canceled orders' });
+  }
+};
+
+// Add other methods or update the structure as required
 
 module.exports = {
   getOrder,

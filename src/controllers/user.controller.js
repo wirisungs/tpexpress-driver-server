@@ -2,6 +2,7 @@ const User = require('../models/User.model');
 const Driver = require('../models/Driver.model');
 const Vehicle = require('../models/Vehicle.model');
 const VehicleType = require('../models/VehicleType.model');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const getDriver = async (req, res) => {
@@ -26,10 +27,11 @@ const getUserEmail = async (req, res) => {
   try {
     const driver = await Driver.findOne({ driverEmail: email });
 
-    if(driver) {
-      return res.json({exists: true})
+    if (driver) {
+      // Nếu tìm thấy driver, trả về exists và driverId
+      return res.json({ exists: true, driverId: driver.driverId });
     } else {
-      return res.json({exists: false})
+      return res.json({ exists: false });
     }
   } catch (error) {
     console.error('Lỗi khi kiểm tra email:', error);
@@ -38,32 +40,33 @@ const getUserEmail = async (req, res) => {
 };
 
 const saveUserProfileFromSSO = async (req, res) => {
-  const { driverId, name, email, phone, address, birth, gender } = req.body;
+  const { driverId, name, email, phone, address, birth, driverGender } = req.body;
   console.log("Dữ liệu nhận từ frontend:", req.body);
 
   try {
     const existingDriver = await Driver.findOne({ driverEmail: email });
-    console.log("Kiểm tra email tồn tại", existingDriver);
+    console.log("Kiểm tra email tồn tại:", existingDriver);
 
     if (existingDriver) {
-      return res.status(400).json({ message: 'Email đã tồn tại' });
+      return res.status(409).json({ error: 'Email đã tồn tại trong hệ thống' });
     }
+
     const newDriver = new Driver({
       driverId: driverId,
       driverName: name,
       driverEmail: email,
       driverPhone: phone,
       driverAddress: address,
-      driverGender: gender,
-      driverBirth: birth,
+      driverBirthday: birth,
+      driverGender: driverGender,
     });
-    console.log("Đã thêm tài xế mới", newDriver);
+    console.log("Đối tượng mới chuẩn bị lưu:", newDriver);
 
     await newDriver.save();
-    res.status(201).json({ message: 'Tài xế đã được thêm thành công', driver: newDriver });
+    res.status(201).json({ message: 'Tài khoản đã được tạo thành công', Driver: newDriver });
   } catch (error) {
-    console.error('Lỗi khi thêm tài xế:', error);
-    res.status(500).json({ message: 'Lỗi khi thêm tài xế', error: error.message });
+    console.error('Lỗi khi tạo tài khoản be:', error);
+    res.status(500).json({ error: 'Lỗi khi tạo tài khoản be2' });
   }
 };
 
@@ -87,36 +90,27 @@ const checkDriverEmail = async (req, res) => {
   };
 
 // Route to get the user profile
+
 const fetchUserProfile = async (req, res) => {
-    try {
-      const { userId } = req.user;  // Extract userId from the authenticated user
-      // Fetch driver profile based on userId (which is a string)
-      const driver = await Driver.findOne({ userId })  // Match driver by userId (String)
-        .exec(); // Ensure the query is executed
+  const { driverId } = req.params; // Get driverId from URL params
 
-      if (!driver) {
-        return res.status(404).json({ message: 'Driver profile not found' });
-      }
+  try {
+    // Fetch driver data from database based on driverId
+    const driver = await Driver.findOne({ driverId });
 
-      // Fetch user details separately using driver.userId (String)
-      const user = await User.findOne({ userId: driver.userId }) // Query the User model by userId field
-        .select('userPhone userRole'); // Select only needed fields
-
-      // Respond with the driver profile data
-      res.json({
-        driverName: driver.driverName,
-        driverPhone: driver.driverPhone,
-        driverLicenseType: driver.driverLicenseType,
-        vehiclePlate: driver.driverVehicleBSX,
-        driverLocation: driver.driverAddress,
-        userRole: user ? user.userRole : null,  // Check if user exists before accessing userRole
-      });
-    } catch (error) {
-      console.error('Error fetching driver profile:', error);  // Log the exact error
-      res.status(500).json({ message: 'Server error', error: error.message });
+    if (!driver) {
+      return res.status(404).json({ message: 'Driver not found' });
     }
+
+    // Return driver profile data
+    res.json(driver);
+  } catch (err) {
+    console.error('Error fetching user profile:', err); // Detailed error logging
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
 };
 
+module.exports = { fetchUserProfile };
 
 // Route to update the user profile
 const updateUserProfile = async (req, res) => {
