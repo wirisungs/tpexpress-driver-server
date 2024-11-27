@@ -4,180 +4,263 @@ const OrderDetail = require('../models/OrderDetail.model');
 const Customer = require('../models/Customer.model');
 const DeliveryStatus = require('../models/DeliveryStatus.model');
 const User = require('../models/User.model');
+const cloudinary = require('../config/cloudinary.config');
 
-// Get orders with orderStatusId
+// Lấy đơn hàng với trạng thái 'Chờ xử lý'
 const getOrder = async (req, res) => {
   try {
-    console.log('Fetching orders');
+    console.log('Đang lấy đơn hàng');
     const orders = await Order.find({ orderStatusId: 'ST001' }).lean();
     res.json(orders);
   } catch (error) {
-    console.error('Error fetching orders:', error);
-    res.status(500).json({ error: 'Error fetching orders' });
+    console.error('Lỗi khi lấy đơn hàng:', error);
+    res.status(500).json({ error: 'Lỗi khi lấy đơn hàng' });
   }
 };
 
-// Get orders with status 'Đang vận chuyển' for a driver by driverId
+// Lấy đơn hàng 'Đang vận chuyển' cho tài xế theo driverId
 const getOrderOngoing = async (req, res) => {
-    const { driverId } = req.params; // Lấy driverId từ URL params
-    try {
-      // Tìm các đơn hàng với driverId và trạng thái 'ST002' (đơn hàng đang xử lý)
-      const orders = await Order.find({ orderStatusId: 'ST002', driverId: driverId }).lean();
-
-      // Nếu không có đơn hàng nào, trả về mảng rỗng
-      if (orders.length === 0) {
-        return res.status(404).json({ message: 'Không có đơn hàng nào' });
-      }
-
-      // Trả về danh sách đơn hàng
-      res.json(orders);
-    } catch (error) {
-      console.error('Lỗi khi lấy đơn hàng đang xử lý:', error);
-      res.status(500).json({ error: 'Lỗi khi lấy đơn hàng đang xử lý' });
+  const { driverId } = req.params;
+  try {
+    const orders = await Order.find({ orderStatusId: 'ST002', driverId }).lean();
+    if (!orders.length) {
+      return res.status(404).json({ message: 'Không có đơn hàng nào đang vận chuyển' });
     }
-  };
+    res.json(orders);
+  } catch (error) {
+    console.error('Lỗi khi lấy đơn hàng đang xử lý:', error);
+    res.status(500).json({ error: 'Lỗi khi lấy đơn hàng đang xử lý' });
+  }
+};
 
-  module.exports = { getOrderOngoing };
-
-// Get order details by orderId
+// Lấy chi tiết đơn hàng theo orderId
 const getOrderDetails = async (req, res) => {
   const { orderId } = req.params;
   try {
     const orderDetails = await OrderDetail.find({ orderId }).lean();
     res.json(orderDetails);
   } catch (error) {
-    console.error('Error fetching order details:', error);
-    res.status(500).json({ error: 'Error fetching order details' });
+    console.error('Lỗi khi lấy chi tiết đơn hàng:', error);
+    res.status(500).json({ error: 'Lỗi khi lấy chi tiết đơn hàng' });
   }
 };
 
-// Accept an order and change status to 'Đang vận chuyển'
+// Chấp nhận đơn hàng (kiểm tra giới hạn 10 đơn/ngày)
 const acceptOrder = async (req, res) => {
   const { orderId } = req.params;
-  const { statusId, driverId } = req.body; // driverId is now from the request body
+  const { statusId, driverId } = req.body;
 
   if (!driverId) {
-    return res.status(400).json({ error: 'Driver ID is required' });
+    return res.status(400).json({ error: 'Cần có mã tài xế' });
   }
 
   try {
-    // Log driverId and orderId for debugging
-    console.log('Accepting order with orderId:', orderId, 'and driverId:', driverId);
+    console.log(`Chấp nhận đơn hàng: orderId=${orderId}, driverId=${driverId}`);
 
-    // Check if the provided statusId exists
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Kiểm tra tài xế đã nhận đủ 10 đơn trong ngày chưa
+    const ordersToday = await Order.countDocuments({
+      driverId,
+      createdDate: { $gte: todayStart, $lte: todayEnd },
+    });
+
+    if (ordersToday >= 10) {
+      return res.status(400).json({ error: 'Tài xế đã nhận đủ 10 đơn trong ngày' });
+    }
+
+    // Kiểm tra trạng thái hợp lệ
     const statusExists = await DeliveryStatus.exists({ statusId });
     if (!statusExists) {
-      return res.status(400).json({ error: 'Invalid statusId' });
+      return res.status(40).json({ error: 'Mã trạng thái không hợp lệ' });
     }
 
-    // Find the order and verify current status
+    // Kiểm tra đơn hàng
     const order = await Order.findOne({ orderId }).lean();
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
     if (order.orderStatusId !== 'ST001') {
-      return res.status(400).json({ error: 'Order status must be ST001 to update to ST002' });
+      return res.status(400).json({ error: 'Trạng thái đơn hàng phải là ST001 để cập nhật thành ST002' });
     }
 
-    // Update order status to 'ST002' and set driverId
+    // Cập nhật trạng thái
     const updatedOrder = await Order.findOneAndUpdate(
       { orderId },
-      { orderStatusId: statusId, driverId: driverId },
+      { orderStatusId: statusId, driverId },
       { new: true }
     ).lean();
 
-    // Send updated order response
-    res.json(updatedOrder);
+    res.json({ message: 'Đơn hàng đã được chấp nhận', updatedOrder });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ error: 'Error updating order status' });
+    console.error('Lỗi khi chấp nhận đơn hàng:', error);
+    res.status(500).json({ error: 'Lỗi khi chấp nhận đơn hàng' });
   }
 };
 
-// Complete an order and update status to 'Đã hoàn thành'
+// Hoàn thành đơn hàng
 const completeOrder = async (req, res) => {
   const { orderId } = req.params;
-  const { statusId } = req.body;
-  try {
-    // Check if the provided statusId exists
-    const statusExists = await DeliveryStatus.exists({ statusId });
-    if (!statusExists) {
-      return res.status(400).json({ error: 'Invalid statusId' });
-    }
+  const { statusId, proofImage } = req.body;
 
-    // Ensure the current status is 'ST002' before updating to 'ST003'
+  try {
     const order = await Order.findOne({ orderId }).lean();
     if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
+      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
     }
     if (order.orderStatusId !== 'ST002') {
-      return res.status(400).json({ error: 'Order status must be ST002 to update to ST003' });
+      return res.status(400).json({ error: 'Trạng thái đơn hàng phải là ST002 để cập nhật thành ST003' });
     }
 
-    const updatedOrder = await Order.findOneAndUpdate({ orderId }, { orderStatusId: statusId }, { new: true }).lean();
-    res.json(updatedOrder);
+    // Upload ảnh nếu có
+    let imageUrl = null;
+    if (proofImage) {
+      const uploadResponse = await cloudinary.uploader.upload(proofImage, {
+        folder: 'proof_images',
+        public_id: `order_${orderId}_proof`,
+      });
+      imageUrl = uploadResponse.secure_url;
+    }
+
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { orderStatusId: statusId, proofImage: imageUrl },
+      { new: true }
+    ).lean();
+
+    res.json({ message: 'Đơn hàng đã hoàn thành', updatedOrder });
   } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ error: 'Error updating order status' });
+    console.error('Lỗi khi hoàn thành đơn hàng:', error);
+    res.status(500).json({ error: 'Lỗi khi hoàn thành đơn hàng' });
   }
 };
 
-// Cancel an order and update status to 'Đã hủy'
+// Hủy đơn hàng
 const cancelOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const { statusId } = req.body;
-  try {
-    // Check if the provided statusId exists
-    const statusExists = await DeliveryStatus.exists({ statusId });
-    if (!statusExists) {
-      return res.status(400).json({ error: 'Invalid statusId' });
-    }
+    const { orderId } = req.params;
+    const { statusId, reason } = req.body;
 
-    // Ensure the current status is 'ST001' or 'ST002' before updating to 'ST004'
-    const order = await Order.findOne({ orderId }).lean();
-    if (!order) {
-      return res.status(404).json({ error: 'Order not found' });
-    }
-    if (order.orderStatusId !== 'ST001' && order.orderStatusId !== 'ST002') {
-      return res.status(400).json({ error: 'Order status must be ST001 or ST002 to update to ST004' });
-    }
+    try {
+      console.log(`Đang hủy đơn hàng: orderId=${orderId}`);
 
-    const updatedOrder = await Order.findOneAndUpdate({ orderId }, { orderStatusId: statusId }, { new: true }).lean();
-    res.json(updatedOrder);
-  } catch (error) {
-    console.error('Error updating order status:', error);
-    res.status(500).json({ error: 'Error updating order status' });
-  }
-};
+      // Kiểm tra trạng thái hợp lệ
+      const statusExists = await DeliveryStatus.exists({ statusId });
+      if (!statusExists) {
+        return res.status(400).json({ error: 'Mã trạng thái không hợp lệ' });
+      }
 
-// Get completed orders for a specific driver
+      // Kiểm tra đơn hàng
+      const order = await Order.findOne({ orderId }).lean();
+      if (!order) {
+        return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+      }
+      if (order.orderStatusId === 'ST003' || order.orderStatusId === 'ST004') {
+        return res.status(400).json({ error: 'Không thể hủy đơn hàng đã hoàn thành hoặc đã hủy' });
+      }
+
+      // Cập nhật trạng thái và lý do hủy
+      const updatedOrder = await Order.findOneAndUpdate(
+        { orderId },
+        { orderStatusId: statusId, cancelReason: reason },
+        { new: true }
+      ).lean();
+
+      res.json({ message: 'Đơn hàng đã được hủy', updatedOrder });
+    } catch (error) {
+      console.error('Lỗi khi hủy đơn hàng:', error);
+      res.status(500).json({ error: 'Lỗi khi hủy đơn hàng' });
+    }
+  };
+
+// Lấy đơn hàng đã hoàn thành
 const getOrderCompleted = async (req, res) => {
-  const { driverId } = req.body; // Assuming req.user contains the authenticated driver's information
-  try {
-    console.log('Fetching completed orders for driver:', driverId);
-    const orders = await Order.find({ orderStatusId: 'ST003', driverId: driverId }).lean();
-    res.json(orders);
-  } catch (error) {
-    console.error('Error fetching completed orders:', error);
-    res.status(500).json({ error: 'Error fetching completed orders' });
-  }
-};
+    const { driverId } = req.params;
 
-// Get canceled orders for a specific driver
+    try {
+      console.log('Đang lấy đơn hàng đã hoàn thành cho tài xế:', driverId);
+
+      const completedOrders = await Order.find({ orderStatusId: 'ST003', driverId }).lean();
+
+      if (!completedOrders.length) {
+        return res.status(404).json({ message: 'Không có đơn hàng đã hoàn thành' });
+      }
+
+      res.json(completedOrders);
+    } catch (error) {
+      console.error('Lỗi khi lấy đơn hàng đã hoàn thành:', error);
+      res.status(500).json({ error: 'Lỗi khi lấy đơn hàng đã hoàn thành' });
+    }
+  };
+
+  // Lấy đơn hàng đã hủy
 const getOrderCanceled = async (req, res) => {
-  const { driverId } = req.body; // Assuming req.user contains the authenticated driver's information
-  try {
-    console.log('Fetching canceled orders for driver:', driverId);
-    const orders = await Order.find({ orderStatusId: 'ST004', driverId: driverId }).lean();
-    res.json(orders);
-  } catch (error) {
-    console.error('Error fetching canceled orders:', error);
-    res.status(500).json({ error: 'Error fetching canceled orders' });
-  }
-};
+    const { driverId } = req.params;
 
-// Add other methods or update the structure as required
+    try {
+      console.log('Đang lấy đơn hàng đã hủy cho tài xế:', driverId);
 
+      const canceledOrders = await Order.find({ orderStatusId: 'ST004', driverId }).lean();
+
+      if (!canceledOrders.length) {
+        return res.status(404).json({ message: 'Không có đơn hàng đã hủy' });
+      }
+
+      res.json(canceledOrders);
+    } catch (error) {
+      console.error('Lỗi khi lấy đơn hàng đã hủy:', error);
+      res.status(500).json({ error: 'Lỗi khi lấy đơn hàng đã hủy' });
+    }
+  };
+
+// Tính doanh thu
+const calculateRevenue = async (req, res) => {
+    const { driverId } = req.params;
+
+    try {
+      const completedOrders = await Order.find({ driverId, orderStatusId: 'ST003' }).lean();
+      const failedOrders = await Order.find({ driverId, orderStatusId: 'ST004' }).lean();
+
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const todayRevenue = completedOrders
+        .filter(order => order.createdDate >= todayStart)
+        .reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+      const totalRevenue = completedOrders.reduce((sum, order) => sum + (order.totalPrice || 0), 0);
+
+      const driverRevenue = (totalRevenue * 30) / 100;
+      const companyRevenue = totalRevenue - driverRevenue;
+
+      // Example transactions (populate this from your database in production)
+      const transactions = completedOrders.map(order => ({
+        date: order.createdDate,
+        name: order.customerName || 'Khách hàng không xác định',
+        amount: `${order.totalPrice || 0} vnđ`,
+        type: 'income',
+      }));
+
+      res.json({
+        totalRevenue,
+        driverRevenue,
+        companyRevenue,
+        completedOrders: completedOrders.length,
+        failedOrders: failedOrders.length,
+        todayRevenue,
+        transactions,
+      });
+    } catch (error) {
+      console.error('Lỗi khi tính toán doanh thu:', error);
+      res.status(500).json({ error: 'Lỗi khi tính toán doanh thu' });
+    }
+  };
+
+
+
+// Export module
 module.exports = {
   getOrder,
   getOrderOngoing,
@@ -186,5 +269,6 @@ module.exports = {
   completeOrder,
   cancelOrder,
   getOrderCompleted,
-  getOrderCanceled
+  getOrderCanceled,
+  calculateRevenue,
 };

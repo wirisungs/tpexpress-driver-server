@@ -1,7 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const { fetchUserProfile, updateUserProfile, getDriver, getUserEmail, saveUserProfileFromSSO, checkDriverEmail } = require('../controllers/user.controller');
-const { authenticateUser } = require('../middleware/auth.middleware');
 
 // Define routes
 router.get('/profile/:driverId', fetchUserProfile);
