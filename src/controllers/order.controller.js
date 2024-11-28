@@ -47,59 +47,77 @@ const getOrderDetails = async (req, res) => {
 
 // Chấp nhận đơn hàng (kiểm tra giới hạn 10 đơn/ngày)
 const acceptOrder = async (req, res) => {
-  const { orderId } = req.params;
-  const { statusId, driverId } = req.body;
+    const { orderId } = req.params;
+    const { statusId, driverId } = req.body;
 
-  if (!driverId) {
-    return res.status(400).json({ error: 'Cần có mã tài xế' });
-  }
-
-  try {
-    console.log(`Chấp nhận đơn hàng: orderId=${orderId}, driverId=${driverId}`);
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    // Kiểm tra tài xế đã nhận đủ 10 đơn trong ngày chưa
-    const ordersToday = await Order.countDocuments({
-      driverId,
-      createdDate: { $gte: todayStart, $lte: todayEnd },
-    });
-
-    if (ordersToday >= 10) {
-      return res.status(400).json({ error: 'Tài xế đã nhận đủ 10 đơn trong ngày' });
+    if (!driverId) {
+      return res.status(400).json({ error: 'Cần có mã tài xế' });
     }
 
-    // Kiểm tra trạng thái hợp lệ
-    const statusExists = await DeliveryStatus.exists({ statusId });
-    if (!statusExists) {
-      return res.status(40).json({ error: 'Mã trạng thái không hợp lệ' });
-    }
+    try {
+      console.log(`Chấp nhận đơn hàng: orderId=${orderId}, driverId=${driverId}`);
 
-    // Kiểm tra đơn hàng
-    const order = await Order.findOne({ orderId }).lean();
-    if (!order) {
-      return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
-    }
-    if (order.orderStatusId !== 'ST001') {
-      return res.status(400).json({ error: 'Trạng thái đơn hàng phải là ST001 để cập nhật thành ST002' });
-    }
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
 
-    // Cập nhật trạng thái
-    const updatedOrder = await Order.findOneAndUpdate(
-      { orderId },
-      { orderStatusId: statusId, driverId },
-      { new: true }
-    ).lean();
+      // Kiểm tra tài xế đã nhận đủ 10 đơn trong ngày chưa
+      const ordersToday = await Order.countDocuments({
+        driverId,
+        createdDate: { $gte: todayStart, $lte: todayEnd },
+      });
 
-    res.json({ message: 'Đơn hàng đã được chấp nhận', updatedOrder });
-  } catch (error) {
-    console.error('Lỗi khi chấp nhận đơn hàng:', error);
-    res.status(500).json({ error: 'Lỗi khi chấp nhận đơn hàng' });
-  }
-};
+      if (ordersToday >= 10) {
+        return res.status(400).json({ error: 'Tài xế đã nhận đủ 10 đơn trong ngày' });
+      }
+
+      // Kiểm tra trạng thái hợp lệ
+      const statusExists = await DeliveryStatus.exists({ statusId });
+      if (!statusExists) {
+        return res.status(400).json({ error: 'Mã trạng thái không hợp lệ' });
+      }
+
+      // Kiểm tra đơn hàng
+      const order = await Order.findOne({ orderId });
+      if (!order) {
+        return res.status(404).json({ error: 'Không tìm thấy đơn hàng' });
+      }
+
+      if (order.orderStatusId !== 'ST001') {
+        return res.status(400).json({
+          error: 'Trạng thái đơn hàng phải là ST001 để cập nhật thành ST002',
+          currentStatus: order.orderStatusId,
+        });
+      }
+
+      // Cập nhật trạng thái và gán driverId
+      const updatedOrder = await Order.findOneAndUpdate(
+        { orderId },
+        {
+          $set: {
+            orderStatusId: statusId,
+            driverId: driverId,
+          },
+        },
+        { new: true }
+      );
+
+      if (!updatedOrder) {
+        return res.status(500).json({ error: 'Cập nhật đơn hàng thất bại' });
+      }
+
+      console.log('Cập nhật thành công:', updatedOrder);
+
+      res.json({
+        message: 'Đơn hàng đã được chấp nhận',
+        order: updatedOrder,
+      });
+    } catch (error) {
+      console.error('Lỗi khi chấp nhận đơn hàng:', error.message);
+      res.status(500).json({ error: 'Lỗi khi chấp nhận đơn hàng' });
+    }
+  };
 
 // Hoàn thành đơn hàng
 const completeOrder = async (req, res) => {
